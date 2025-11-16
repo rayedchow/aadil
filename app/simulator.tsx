@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,8 @@ import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { Card } from '../components/Card';
 import { LineChart } from '../components/LineChart';
-import { Colors, Radii, Spacing } from '../constants/theme';
+import { Radii, Spacing, ThemeColors } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 export default function SimulatorScreen() {
   const [dining, setDining] = useState(142);
@@ -22,8 +23,9 @@ export default function SimulatorScreen() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const { width } = useWindowDimensions();
   const chartWidth = width - Spacing.screenPadding * 2 - Spacing.cardPadding * 2;
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
-  // Calculate projections based on slider values
   const currentPath = [
     { x: 1, y: 2000 },
     { x: 2, y: 1850 },
@@ -83,11 +85,11 @@ export default function SimulatorScreen() {
           </View>
           <View style={styles.heroChipRow}>
             <View style={styles.heroChip}>
-              <Ionicons name="pulse" size={16} color={Colors.primary} />
+              <Ionicons name="pulse" size={16} color={colors.primary} />
               <Text style={styles.heroChipText}>Adaptive model v2.1</Text>
             </View>
             <View style={styles.heroChip}>
-              <Ionicons name="time-outline" size={16} color={Colors.primary} />
+              <Ionicons name="time-outline" size={16} color={colors.primary} />
               <Text style={styles.heroChipText}>Next refresh: 4h</Text>
             </View>
           </View>
@@ -102,7 +104,9 @@ export default function SimulatorScreen() {
             data={currentPath}
             height={240}
             width={chartWidth}
-            color={Colors.primary}
+            color={colors.primary}
+            gridColor={colors.border}
+            axisColor={colors.border}
           />
           <View style={styles.balanceInfo}>
             <View>
@@ -110,7 +114,7 @@ export default function SimulatorScreen() {
               <Text style={styles.balanceValue}>${predictedBalance.toLocaleString()}</Text>
             </View>
             <View style={styles.deltaPill}>
-              <Ionicons name="trending-up" size={16} color={Colors.accentGreen} />
+              <Ionicons name="trending-up" size={16} color={colors.accentGreen} />
               <Text style={styles.deltaText}>$312 opportunity</Text>
             </View>
           </View>
@@ -127,17 +131,33 @@ export default function SimulatorScreen() {
               setCurrentDate((prev) => new Date(prev.getTime() + 24 * 60 * 60 * 1000))
             }
           >
-            <Ionicons name="play" size={18} color={Colors.surface} />
+            <Ionicons name="play" size={18} color={colors.surface} />
             <Text style={styles.simulateButtonText}>Simulate Next Day</Text>
           </TouchableOpacity>
           <View style={styles.comparisonCharts}>
             <View style={styles.miniChart}>
               <Text style={styles.miniChartTitle}>Your Current Path</Text>
-              <LineChart data={currentPath} height={120} width={chartWidth / 2 - 16} color={Colors.primary} strokeWidth={2} />
+              <LineChart
+                data={currentPath}
+                height={120}
+                width={chartWidth / 2 - 16}
+                color={colors.primary}
+                strokeWidth={2}
+                gridColor={colors.border}
+                axisColor={colors.border}
+              />
             </View>
             <View style={styles.miniChart}>
               <Text style={styles.miniChartTitle}>AI Recommended</Text>
-              <LineChart data={optimizedPath} height={120} width={chartWidth / 2 - 16} color={Colors.accentGreen} strokeWidth={2} />
+              <LineChart
+                data={optimizedPath}
+                height={120}
+                width={chartWidth / 2 - 16}
+                color={colors.accentGreen}
+                strokeWidth={2}
+                gridColor={colors.border}
+                axisColor={colors.border}
+              />
             </View>
           </View>
           <View style={styles.savingsCard}>
@@ -155,7 +175,7 @@ export default function SimulatorScreen() {
                 min: 50,
                 max: 250,
                 icon: 'restaurant',
-                color: Colors.accentOrange,
+                color: colors.accentOrange,
               },
               {
                 label: 'Groceries',
@@ -164,7 +184,7 @@ export default function SimulatorScreen() {
                 min: 30,
                 max: 150,
                 icon: 'basket',
-                color: Colors.accentGreen,
+                color: colors.accentGreen,
               },
               {
                 label: 'Clubs',
@@ -173,7 +193,7 @@ export default function SimulatorScreen() {
                 min: 20,
                 max: 100,
                 icon: 'people',
-                color: Colors.accentPurple,
+                color: colors.accentPurple,
               },
               {
                 label: 'Transportation',
@@ -182,7 +202,7 @@ export default function SimulatorScreen() {
                 min: 20,
                 max: 100,
                 icon: 'car',
-                color: Colors.primary,
+                color: colors.primary,
               },
             ].map((item) => (
               <View key={item.label} style={styles.sliderItem}>
@@ -200,7 +220,7 @@ export default function SimulatorScreen() {
                   value={item.value}
                   onValueChange={item.setValue}
                   minimumTrackTintColor={item.color}
-                  maximumTrackTintColor={Colors.border}
+                  maximumTrackTintColor={colors.border}
                   thumbTintColor={item.color}
                 />
               </View>
@@ -211,7 +231,7 @@ export default function SimulatorScreen() {
         <Card variant="muted">
           <View style={styles.recommendationHeader}>
             <View style={styles.sparkleBadge}>
-              <Ionicons name="bulb-outline" size={18} color={Colors.accentOrange} />
+              <Ionicons name="bulb-outline" size={18} color={colors.accentOrange} />
             </View>
             <Text style={styles.recommendationTitle}>AI Recommendation</Text>
           </View>
@@ -233,255 +253,256 @@ export default function SimulatorScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: Spacing.screenPadding,
-    paddingTop: 12,
-    paddingBottom: 32,
-  },
-  heroCard: {
-    borderWidth: 0,
-  },
-  eyebrow: {
-    fontSize: 13,
-    color: Colors.textMuted,
-    marginBottom: 4,
-  },
-  heroTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: Colors.text,
-    marginBottom: 16,
-  },
-  dateRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  dateLabel: {
-    fontSize: 13,
-    color: Colors.textMuted,
-  },
-  dateValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  heroChipRow: {
-    flexDirection: 'row',
-    gap: 12,
-    flexWrap: 'wrap',
-  },
-  heroChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: Radii.pill,
-    gap: 6,
-  },
-  heroChipText: {
-    fontSize: 13,
-    color: Colors.primary,
-    fontWeight: '600',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  secondaryText: {
-    fontSize: 13,
-    color: Colors.textMuted,
-  },
-  simulateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.primary,
-    borderRadius: Radii.pill,
-    paddingVertical: 10,
-    marginBottom: 16,
-    gap: 8,
-  },
-  simulateButtonText: {
-    color: Colors.surface,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  balanceInfo: {
-    marginTop: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  balanceLabel: {
-    fontSize: 13,
-    color: Colors.textMuted,
-    marginBottom: 4,
-  },
-  balanceValue: {
-    fontSize: 30,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  deltaPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EAFBF0',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: Radii.pill,
-    gap: 6,
-  },
-  deltaText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.accentGreen,
-  },
-  comparisonCharts: {
-    flexDirection: 'row',
-    gap: 14,
-    marginBottom: 20,
-  },
-  miniChart: {
-    flex: 1,
-    backgroundColor: Colors.surfaceMuted,
-    borderRadius: Radii.md,
-    padding: 12,
-  },
-  miniChartTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.textMuted,
-    marginBottom: 8,
-  },
-  savingsCard: {
-    backgroundColor: Colors.surfaceHighlight,
-    borderRadius: Radii.md,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  savingsLabel: {
-    fontSize: 13,
-    color: Colors.textMuted,
-  },
-  savingsAmount: {
-    fontSize: 34,
-    fontWeight: '700',
-    color: Colors.accentGreen,
-    marginVertical: 6,
-  },
-  savingsSubtext: {
-    fontSize: 13,
-    color: Colors.textMuted,
-  },
-  slidersContainer: {
-    marginTop: 8,
-    gap: 18,
-  },
-  sliderItem: {
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    paddingBottom: 12,
-  },
-  sliderHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  sliderIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  sliderLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-    flex: 1,
-  },
-  sliderValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  slider: {
-    width: '100%',
-    height: 38,
-    marginTop: 8,
-  },
-  recommendationHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 10,
-  },
-  sparkleBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#FFEFE1',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  recommendationTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  recommendationText: {
-    fontSize: 15,
-    color: Colors.text,
-    lineHeight: 22,
-    marginBottom: 16,
-  },
-  recommendationActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  primaryButton: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-    paddingVertical: 14,
-    borderRadius: Radii.pill,
-    alignItems: 'center',
-  },
-  primaryButtonText: {
-    color: Colors.surface,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-    borderRadius: Radii.pill,
-    alignItems: 'center',
-    paddingVertical: 14,
-  },
-  secondaryButtonText: {
-    color: Colors.primary,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scroll: {
+      flex: 1,
+    },
+    content: {
+      paddingHorizontal: Spacing.screenPadding,
+      paddingTop: 12,
+      paddingBottom: 32,
+    },
+    heroCard: {
+      borderWidth: 0,
+    },
+    eyebrow: {
+      fontSize: 13,
+      color: colors.textMuted,
+      marginBottom: 4,
+    },
+    heroTitle: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 16,
+    },
+    dateRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    dateLabel: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    dateValue: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    heroChipRow: {
+      flexDirection: 'row',
+      gap: 12,
+      flexWrap: 'wrap',
+    },
+    heroChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: Radii.pill,
+      gap: 6,
+    },
+    heroChipText: {
+      fontSize: 13,
+      color: colors.primary,
+      fontWeight: '600',
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    secondaryText: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    simulateButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primary,
+      borderRadius: Radii.pill,
+      paddingVertical: 10,
+      marginBottom: 16,
+      gap: 8,
+    },
+    simulateButtonText: {
+      color: colors.surface,
+      fontSize: 15,
+      fontWeight: '600',
+    },
+    balanceInfo: {
+      marginTop: 20,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    balanceLabel: {
+      fontSize: 13,
+      color: colors.textMuted,
+      marginBottom: 4,
+    },
+    balanceValue: {
+      fontSize: 30,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    deltaPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surfaceMuted,
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+      borderRadius: Radii.pill,
+      gap: 6,
+    },
+    deltaText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.accentGreen,
+    },
+    comparisonCharts: {
+      flexDirection: 'row',
+      gap: 14,
+      marginBottom: 20,
+    },
+    miniChart: {
+      flex: 1,
+      backgroundColor: colors.surfaceMuted,
+      borderRadius: Radii.md,
+      padding: 12,
+    },
+    miniChartTitle: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.textMuted,
+      marginBottom: 8,
+    },
+    savingsCard: {
+      backgroundColor: colors.surfaceHighlight,
+      borderRadius: Radii.md,
+      padding: 16,
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    savingsLabel: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    savingsAmount: {
+      fontSize: 34,
+      fontWeight: '700',
+      color: colors.accentGreen,
+      marginVertical: 6,
+    },
+    savingsSubtext: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    slidersContainer: {
+      marginTop: 8,
+      gap: 18,
+    },
+    sliderItem: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      paddingBottom: 12,
+    },
+    sliderHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    sliderIcon: {
+      width: 32,
+      height: 32,
+      borderRadius: Radii.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 12,
+    },
+    sliderLabel: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.text,
+      flex: 1,
+    },
+    sliderValue: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.primary,
+    },
+    slider: {
+      width: '100%',
+      height: 38,
+      marginTop: 8,
+    },
+    recommendationHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+      gap: 10,
+    },
+    sparkleBadge: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: '#FFEFE1',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    recommendationTitle: {
+      fontSize: 17,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    recommendationText: {
+      fontSize: 15,
+      color: colors.text,
+      lineHeight: 22,
+      marginBottom: 16,
+    },
+    recommendationActions: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    primaryButton: {
+      flex: 1,
+      backgroundColor: colors.primary,
+      paddingVertical: 14,
+      borderRadius: Radii.pill,
+      alignItems: 'center',
+    },
+    primaryButtonText: {
+      color: colors.surface,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    secondaryButton: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.primary,
+      borderRadius: Radii.pill,
+      alignItems: 'center',
+      paddingVertical: 14,
+    },
+    secondaryButtonText: {
+      color: colors.primary,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+  });
 

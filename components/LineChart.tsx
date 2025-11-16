@@ -11,6 +11,8 @@ interface LineChartProps {
   color2?: string;
   strokeWidth?: number;
   showGrid?: boolean;
+  gridColor?: string;
+  axisColor?: string;
 }
 
 export const LineChart: React.FC<LineChartProps> = ({
@@ -22,6 +24,8 @@ export const LineChart: React.FC<LineChartProps> = ({
   color2,
   strokeWidth = 3,
   showGrid = true,
+  gridColor = '#F2F2F7',
+  axisColor = '#E5E5EA',
 }) => {
   const padding = { top: 20, right: 20, bottom: 40, left: 50 };
   const chartWidth = width - padding.left - padding.right;
@@ -63,7 +67,7 @@ export const LineChart: React.FC<LineChartProps> = ({
           y1={y}
           x2={width - padding.right}
           y2={y}
-          stroke="#F2F2F7"
+          stroke={gridColor}
           strokeWidth="1"
         />
       );
@@ -81,7 +85,7 @@ export const LineChart: React.FC<LineChartProps> = ({
             y1={padding.top}
             x2={padding.left}
             y2={height - padding.bottom}
-            stroke="#E5E5EA"
+            stroke={axisColor}
             strokeWidth="1"
           />
           <Line
@@ -89,7 +93,7 @@ export const LineChart: React.FC<LineChartProps> = ({
             y1={height - padding.bottom}
             x2={width - padding.right}
             y2={height - padding.bottom}
-            stroke="#E5E5EA"
+            stroke={axisColor}
             strokeWidth="1"
           />
           {/* First Line */}

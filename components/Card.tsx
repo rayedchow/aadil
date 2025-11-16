@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
-import { Colors, Radii, Shadows, Spacing } from '../constants/theme';
+import { Radii, Spacing, ThemeColors } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 interface CardProps {
   children: React.ReactNode;
@@ -15,12 +16,15 @@ export const Card: React.FC<CardProps> = ({
   variant = 'default',
   padding = Spacing.cardPadding,
 }) => {
+  const { colors, shadows } = useTheme();
+  const styles = useMemo(() => createStyles(colors, shadows.soft), [colors, shadows]);
+
   const backgroundColor =
     variant === 'muted'
-      ? Colors.surfaceMuted
+      ? colors.surfaceMuted
       : variant === 'highlight'
-        ? Colors.surfaceHighlight
-        : Colors.surface;
+        ? colors.surfaceHighlight
+        : colors.surface;
 
   return (
     <View style={[styles.card, { backgroundColor, padding }, style]}>
@@ -29,13 +33,14 @@ export const Card: React.FC<CardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: Radii.lg,
-    marginBottom: Spacing.sectionGap,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    ...Shadows.soft,
-  },
-});
+const createStyles = (colors: ThemeColors, shadow: Record<string, any>) =>
+  StyleSheet.create({
+    card: {
+      borderRadius: Radii.lg,
+      marginBottom: Spacing.sectionGap,
+      borderWidth: 1,
+      borderColor: colors.border,
+      ...shadow,
+    },
+  });
 

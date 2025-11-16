@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../components/Card';
-import { Colors, Radii, Spacing } from '../constants/theme';
+import { Radii, Spacing, ThemeColors } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 export default function PaymentsScreen() {
   const quickActions = [
@@ -18,6 +19,10 @@ export default function PaymentsScreen() {
     { name: 'Events', icon: 'calendar', color: '#007AFF' },
     { name: 'Printing', icon: 'print', color: '#34C759' },
   ];
+
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -35,7 +40,7 @@ export default function PaymentsScreen() {
               <Text style={styles.heroMetaValue}>$1,230</Text>
             </View>
             <View style={styles.heroChip}>
-              <Ionicons name="shield-checkmark" size={16} color={Colors.primary} />
+              <Ionicons name="shield-checkmark" size={16} color={colors.primary} />
               <Text style={styles.heroChipText}>Secure Tap-to-Pay</Text>
             </View>
           </View>
@@ -68,7 +73,7 @@ export default function PaymentsScreen() {
           <View style={styles.walletCard}>
             <View style={styles.walletLeft}>
               <View style={styles.walletBadge}>
-                <Ionicons name="card" size={26} color={Colors.surface} />
+                <Ionicons name="card" size={26} color={colors.surface} />
               </View>
               <View>
                 <Text style={styles.walletLabel}>Rutgers Student ID</Text>
@@ -136,8 +141,8 @@ export default function PaymentsScreen() {
           <Text style={styles.sectionTitle}>Recent Transactions</Text>
           {[
             { name: 'Dining Hall', amount: '$12.50', date: 'Today', icon: 'restaurant', color: '#FF9500' },
-            { name: 'Printing Services', amount: '$3.25', date: 'Yesterday', icon: 'print', color: Colors.accentGreen },
-            { name: 'Event Ticket', amount: '$15.00', date: '2 days ago', icon: 'calendar', color: Colors.primary },
+            { name: 'Printing Services', amount: '$3.25', date: 'Yesterday', icon: 'print', color: colors.accentGreen },
+            { name: 'Event Ticket', amount: '$15.00', date: '2 days ago', icon: 'calendar', color: colors.primary },
           ].map((transaction) => (
             <View key={transaction.name} style={styles.transactionRow}>
               <View style={[styles.transactionIcon, { backgroundColor: `${transaction.color}15` }]}>
@@ -156,266 +161,267 @@ export default function PaymentsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: Spacing.screenPadding,
-    paddingTop: 12,
-    paddingBottom: 40,
-  },
-  heroCard: {
-    borderWidth: 0,
-  },
-  eyebrow: {
-    fontSize: 13,
-    color: Colors.textMuted,
-    marginBottom: 4,
-  },
-  heroTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  heroSubtitle: {
-    fontSize: 15,
-    color: Colors.textMuted,
-    marginTop: 6,
-  },
-  heroFooter: {
-    marginTop: 18,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  heroMetaLabel: {
-    fontSize: 13,
-    color: Colors.textMuted,
-  },
-  heroMetaValue: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  heroChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: Radii.pill,
-    gap: 6,
-  },
-  heroChipText: {
-    fontSize: 13,
-    color: Colors.primary,
-    fontWeight: '600',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  sectionHint: {
-    fontSize: 13,
-    color: Colors.textMuted,
-  },
-  quickGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  quickItem: {
-    width: '46%',
-    backgroundColor: Colors.surfaceMuted,
-    borderRadius: Radii.md,
-    paddingVertical: 18,
-    alignItems: 'center',
-    gap: 8,
-  },
-  quickIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quickText: {
-    fontSize: 15,
-    color: Colors.text,
-    fontWeight: '600',
-  },
-  walletCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  walletLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  walletBadge: {
-    width: 50,
-    height: 50,
-    borderRadius: 14,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  walletLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  walletSubtext: {
-    fontSize: 13,
-    color: Colors.surface,
-    opacity: 0.7,
-  },
-  walletBalance: {
-    alignItems: 'flex-end',
-  },
-  walletBalanceLabel: {
-    fontSize: 13,
-    color: Colors.textMuted,
-  },
-  walletBalanceValue: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  linkText: {
-    fontSize: 15,
-    color: Colors.primary,
-    fontWeight: '600',
-  },
-  checkoutRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  checkoutLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  checkoutIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkoutName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  checkoutDetail: {
-    fontSize: 13,
-    color: Colors.textMuted,
-  },
-  checkoutPrice: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  summaryBox: {
-    marginTop: 16,
-    backgroundColor: Colors.surfaceMuted,
-    borderRadius: Radii.md,
-    padding: 16,
-    gap: 8,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: Colors.textMuted,
-  },
-  summaryValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  summaryRowTotal: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  summaryTotalLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  summaryTotalValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  payButton: {
-    marginTop: 16,
-    backgroundColor: Colors.primary,
-    borderRadius: Radii.pill,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  payButtonText: {
-    color: Colors.surface,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  transactionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  transactionIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  transactionInfo: {
-    flex: 1,
-  },
-  transactionName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  transactionDate: {
-    fontSize: 13,
-    color: Colors.textMuted,
-  },
-  transactionAmount: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scroll: {
+      flex: 1,
+    },
+    content: {
+      paddingHorizontal: Spacing.screenPadding,
+      paddingTop: 12,
+      paddingBottom: 40,
+    },
+    heroCard: {
+      borderWidth: 0,
+    },
+    eyebrow: {
+      fontSize: 13,
+      color: colors.textMuted,
+      marginBottom: 4,
+    },
+    heroTitle: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    heroSubtitle: {
+      fontSize: 15,
+      color: colors.textMuted,
+      marginTop: 6,
+    },
+    heroFooter: {
+      marginTop: 18,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    heroMetaLabel: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    heroMetaValue: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    heroChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: Radii.pill,
+      gap: 6,
+    },
+    heroChipText: {
+      fontSize: 13,
+      color: colors.primary,
+      fontWeight: '600',
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    sectionHint: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    quickGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 16,
+    },
+    quickItem: {
+      width: '46%',
+      backgroundColor: colors.surfaceMuted,
+      borderRadius: Radii.md,
+      paddingVertical: 18,
+      alignItems: 'center',
+      gap: 8,
+    },
+    quickIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: Radii.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    quickText: {
+      fontSize: 15,
+      color: colors.text,
+      fontWeight: '600',
+    },
+    walletCard: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    walletLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    walletBadge: {
+      width: 50,
+      height: 50,
+      borderRadius: 14,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    walletLabel: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    walletSubtext: {
+      fontSize: 13,
+      color: colors.surface,
+      opacity: 0.7,
+    },
+    walletBalance: {
+      alignItems: 'flex-end',
+    },
+    walletBalanceLabel: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    walletBalanceValue: {
+      fontSize: 26,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    linkText: {
+      fontSize: 15,
+      color: colors.primary,
+      fontWeight: '600',
+    },
+    checkoutRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 14,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    checkoutLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      flex: 1,
+    },
+    checkoutIcon: {
+      width: 42,
+      height: 42,
+      borderRadius: Radii.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    checkoutName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    checkoutDetail: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    checkoutPrice: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    summaryBox: {
+      marginTop: 16,
+      backgroundColor: colors.surfaceMuted,
+      borderRadius: Radii.md,
+      padding: 16,
+      gap: 8,
+    },
+    summaryRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    summaryLabel: {
+      fontSize: 14,
+      color: colors.textMuted,
+    },
+    summaryValue: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    summaryRowTotal: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    summaryTotalLabel: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    summaryTotalValue: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    payButton: {
+      marginTop: 16,
+      backgroundColor: colors.primary,
+      borderRadius: Radii.pill,
+      paddingVertical: 16,
+      alignItems: 'center',
+    },
+    payButtonText: {
+      color: colors.surface,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    transactionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    transactionIcon: {
+      width: 42,
+      height: 42,
+      borderRadius: Radii.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 12,
+    },
+    transactionInfo: {
+      flex: 1,
+    },
+    transactionName: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    transactionDate: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    transactionAmount: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.text,
+    },
+  });
 

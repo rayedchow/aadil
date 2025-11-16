@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,16 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../components/Card';
-import { Colors, Radii, Spacing } from '../constants/theme';
+import { Radii, Spacing, ThemeColors } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 export default function ReportsScreen() {
   const [selectedPeriod, setSelectedPeriod] = useState('Month');
 
   const periods = ['Day', 'Week', 'Month', 'Semester'];
+
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const categories = [
     { name: 'Dining', amount: 420, percent: 35, color: '#FF9500' },
@@ -96,7 +100,7 @@ export default function ReportsScreen() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Monthly Snapshot</Text>
             <View style={styles.ratingBadge}>
-              <Ionicons name="checkmark-circle" size={16} color={Colors.accentGreen} />
+              <Ionicons name="checkmark-circle" size={16} color={colors.accentGreen} />
               <Text style={styles.ratingText}>Good</Text>
             </View>
           </View>
@@ -135,7 +139,7 @@ export default function ReportsScreen() {
         <Card>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
-              <Ionicons name="sparkles" size={20} color={Colors.primary} />
+              <Ionicons name="sparkles" size={20} color={colors.primary} />
               <Text style={styles.sectionTitle}>AI Suggestions</Text>
             </View>
             <TouchableOpacity>
@@ -173,20 +177,20 @@ export default function ReportsScreen() {
               description:
                 'Your dining spending increases by 45% on weekends. Consider meal prepping to reduce costs.',
               icon: 'calendar',
-              color: Colors.primary,
+              color: colors.primary,
             },
             {
               title: 'Transportation Savings',
               description:
                 "You've saved $45 by using campus shuttles instead of rideshares. Keep it going!",
               icon: 'trending-down',
-              color: Colors.accentGreen,
+              color: colors.accentGreen,
             },
             {
               title: 'Optimization Opportunity',
               description: 'Reducing entertainment spending by 20% could save $30/month.',
               icon: 'bulb',
-              color: Colors.accentOrange,
+              color: colors.accentOrange,
             },
           ].map((trend, index) => (
             <View key={trend.title}>
@@ -208,239 +212,240 @@ export default function ReportsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: Spacing.screenPadding,
-    paddingTop: 12,
-    paddingBottom: 40,
-  },
-  heroCard: {
-    borderWidth: 0,
-  },
-  eyebrow: {
-    fontSize: 13,
-    color: Colors.textMuted,
-    marginBottom: 4,
-  },
-  heroTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  heroSubtitle: {
-    fontSize: 15,
-    color: Colors.textMuted,
-    marginTop: 6,
-  },
-  heroToggle: {
-    flexDirection: 'row',
-    marginTop: 18,
-    backgroundColor: Colors.surface,
-    borderRadius: Radii.pill,
-    padding: 4,
-  },
-  periodChip: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderRadius: Radii.pill,
-  },
-  periodChipActive: {
-    backgroundColor: Colors.primary,
-  },
-  periodChipText: {
-    fontSize: 13,
-    color: Colors.textMuted,
-    fontWeight: '600',
-  },
-  periodChipTextActive: {
-    color: Colors.surface,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  ratingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8F8EF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: Radii.pill,
-    gap: 6,
-  },
-  ratingText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.accentGreen,
-  },
-  snapshotRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  snapshotLabel: {
-    fontSize: 13,
-    color: Colors.textMuted,
-  },
-  snapshotValue: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  snapshotValuePositive: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: Colors.accentGreen,
-  },
-  snapshotDivider: {
-    width: 1,
-    height: 48,
-    backgroundColor: Colors.border,
-  },
-  categoryBreakdown: {
-    marginTop: 16,
-    gap: 14,
-  },
-  categoryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  categoryLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: 120,
-    gap: 8,
-  },
-  categoryDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  categoryName: {
-    fontSize: 14,
-    color: Colors.text,
-    fontWeight: '500',
-  },
-  categoryBar: {
-    flex: 1,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.border,
-    overflow: 'hidden',
-  },
-  categoryFill: {
-    height: '100%',
-  },
-  categoryAmount: {
-    width: 60,
-    textAlign: 'right',
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  linkText: {
-    fontSize: 15,
-    color: Colors.primary,
-    fontWeight: '600',
-  },
-  suggestionRow: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  suggestionIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  suggestionBody: {
-    flex: 1,
-  },
-  suggestionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  suggestionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  suggestionTime: {
-    fontSize: 13,
-    color: Colors.textMuted,
-  },
-  tagRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  tag: {
-    backgroundColor: Colors.surfaceMuted,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: Radii.pill,
-  },
-  tagText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.textMuted,
-  },
-  trendRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
-  },
-  trendIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: Radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  trendCopy: {
-    flex: 1,
-  },
-  trendTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  trendDescription: {
-    fontSize: 14,
-    color: Colors.textMuted,
-    lineHeight: 20,
-    marginTop: 4,
-  },
-  trendDivider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginTop: 16,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scroll: {
+      flex: 1,
+    },
+    content: {
+      paddingHorizontal: Spacing.screenPadding,
+      paddingTop: 12,
+      paddingBottom: 40,
+    },
+    heroCard: {
+      borderWidth: 0,
+    },
+    eyebrow: {
+      fontSize: 13,
+      color: colors.textMuted,
+      marginBottom: 4,
+    },
+    heroTitle: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    heroSubtitle: {
+      fontSize: 15,
+      color: colors.textMuted,
+      marginTop: 6,
+    },
+    heroToggle: {
+      flexDirection: 'row',
+      marginTop: 18,
+      backgroundColor: colors.surface,
+      borderRadius: Radii.pill,
+      padding: 4,
+    },
+    periodChip: {
+      flex: 1,
+      alignItems: 'center',
+      paddingVertical: 8,
+      borderRadius: Radii.pill,
+    },
+    periodChipActive: {
+      backgroundColor: colors.primary,
+    },
+    periodChipText: {
+      fontSize: 13,
+      color: colors.textMuted,
+      fontWeight: '600',
+    },
+    periodChipTextActive: {
+      color: colors.surface,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    ratingBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#E8F8EF',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: Radii.pill,
+      gap: 6,
+    },
+    ratingText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.accentGreen,
+    },
+    snapshotRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 12,
+    },
+    snapshotLabel: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    snapshotValue: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    snapshotValuePositive: {
+      fontSize: 22,
+      fontWeight: '700',
+      color: colors.accentGreen,
+    },
+    snapshotDivider: {
+      width: 1,
+      height: 48,
+      backgroundColor: colors.border,
+    },
+    categoryBreakdown: {
+      marginTop: 16,
+      gap: 14,
+    },
+    categoryRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    categoryLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      width: 120,
+      gap: 8,
+    },
+    categoryDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+    },
+    categoryName: {
+      fontSize: 14,
+      color: colors.text,
+      fontWeight: '500',
+    },
+    categoryBar: {
+      flex: 1,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.border,
+      overflow: 'hidden',
+    },
+    categoryFill: {
+      height: '100%',
+    },
+    categoryAmount: {
+      width: 60,
+      textAlign: 'right',
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    sectionTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    linkText: {
+      fontSize: 15,
+      color: colors.primary,
+      fontWeight: '600',
+    },
+    suggestionRow: {
+      flexDirection: 'row',
+      gap: 12,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    suggestionIcon: {
+      width: 42,
+      height: 42,
+      borderRadius: Radii.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    suggestionBody: {
+      flex: 1,
+    },
+    suggestionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 6,
+    },
+    suggestionTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    suggestionTime: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    tagRow: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    tag: {
+      backgroundColor: colors.surfaceMuted,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: Radii.pill,
+    },
+    tagText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.textMuted,
+    },
+    trendRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 16,
+    },
+    trendIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: Radii.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    trendCopy: {
+      flex: 1,
+    },
+    trendTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    trendDescription: {
+      fontSize: 14,
+      color: colors.textMuted,
+      lineHeight: 20,
+      marginTop: 4,
+    },
+    trendDivider: {
+      height: 1,
+      backgroundColor: colors.border,
+      marginTop: 16,
+    },
+  });
 
