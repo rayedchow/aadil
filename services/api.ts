@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://36afd654368c.ngrok-free.app/api';
+const API_BASE_URL = 'https://aadil-backend.vercel.app/api';
 
 export interface Transaction {
   id: number;
