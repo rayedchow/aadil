@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,12 +7,16 @@ import {
   SafeAreaView,
   TouchableOpacity,
   useWindowDimensions,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { Card } from '../components/Card';
 import { LineChart } from '../components/LineChart';
-import { Radii, Spacing, ThemeColors } from '../constants/theme';
+import { Radii, Spacing, ThemeColors, Fonts } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
+import { api, DashboardData, SimulationState } from '../services/api';
 
 const calendarCells = [
   { day: '', status: 'empty' },
@@ -47,6 +51,9 @@ const calendarCells = [
   { day: 28, status: 'under' },
   { day: 29, status: 'over' },
   { day: 30, status: 'under' },
+  { day: '', status: 'empty' },
+  { day: '', status: 'empty' },
+  { day: '', status: 'empty' },
 ];
 
 const calendarWeeks: Array<typeof calendarCells[number][]> = [];
@@ -57,164 +64,272 @@ for (let i = 0; i < calendarCells.length; i += 7) {
 export default function DashboardScreen() {
   const { width } = useWindowDimensions();
   const chartWidth = width - Spacing.screenPadding * 2 - Spacing.cardPadding * 2;
-  const today = new Date();
-  const monthLabel = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  const { colors, mode, toggleTheme } = useTheme();
+  const { colors, mode } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const underBudgetColor = mode === 'dark' ? 'rgba(48,209,88,0.25)' : '#EAFBF0';
   const overBudgetColor = colors.accentOrange;
 
-  const onPaceData = [
-    { x: 1, y: 2000 },
-    { x: 2, y: 1850 },
-    { x: 3, y: 1700 },
-    { x: 4, y: 1550 },
-    { x: 5, y: 1400 },
-    { x: 6, y: 1250 },
-    { x: 7, y: 1100 },
-    { x: 8, y: 950 },
-    { x: 9, y: 800 },
-    { x: 10, y: 650 },
-    { x: 11, y: 500 },
-    { x: 12, y: 350 },
-    { x: 13, y: 200 },
-    { x: 14, y: 50 },
-  ];
+  const [loading, setLoading] = useState(true);
+  const [simulating, setSimulating] = useState(false);
+  const [simulationStatus, setSimulationStatus] = useState('');
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [simulationState, setSimulationState] = useState<SimulationState | null>(null);
+  const [timelineData, setTimelineData] = useState<any>(null);
 
-  const optimizedData = [
-    { x: 1, y: 2000 },
-    { x: 2, y: 1920 },
-    { x: 3, y: 1840 },
-    { x: 4, y: 1760 },
-    { x: 5, y: 1680 },
-    { x: 6, y: 1600 },
-    { x: 7, y: 1520 },
-    { x: 8, y: 1440 },
-    { x: 9, y: 1360 },
-    { x: 10, y: 1280 },
-    { x: 11, y: 1200 },
-    { x: 12, y: 1120 },
-    { x: 13, y: 1040 },
-    { x: 14, y: 960 },
-  ];
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [dashboard, state, timeline] = await Promise.all([
+        api.getDashboard(),
+        api.getState(),
+        api.getTimeline(),
+      ]);
+      setDashboardData(dashboard);
+      setSimulationState(state);
+      setTimelineData(timeline);
+    } catch (error) {
+      console.error('Failed to load data:', error);
+      Alert.alert('Error', 'Failed to load dashboard data. Make sure the backend is running.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const connections = [
-    {
-      label: 'Bank Account Integration',
-      status: 'Connected',
-      icon: 'card-outline',
-      accent: colors.primary,
-    },
-    {
-      label: 'Rutgers NetID Account',
-      status: 'Connected',
-      icon: 'school-outline',
-      accent: '#D62828',
-    },
-  ];
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  const handleSimulateDay = async () => {
+    try {
+      setSimulating(true);
+      
+      setSimulationStatus('Analyzing spending patterns...');
+      await sleep(600);
+      
+      setSimulationStatus('Generating transactions...');
+      await sleep(500);
+      
+      const result = await api.simulateDay();
+      
+      setSimulationStatus('Recalculating projections...');
+      await sleep(400);
+      
+      setSimulationStatus('Updating insights...');
+      await sleep(400);
+      
+      await loadData();
+      
+      setSimulationStatus('Complete!');
+      await sleep(300);
+      
+      Alert.alert(
+        'Day Simulated ✓', 
+        `Advanced to ${new Date(result.new_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}\n\nNew balance: $${result.new_balance.toFixed(2)}\n${result.new_transactions.length} transaction(s) added`
+      );
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to simulate day');
+    } finally {
+      setSimulating(false);
+      setSimulationStatus('');
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  if (loading || !dashboardData || !simulationState || !timelineData) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.statLabel, { marginTop: 12 }]}>Loading dashboard...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  const currentDate = new Date(simulationState.current_date);
+  const monthLabel = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  const safeBalance = (balance: number) => Math.max(0, balance);
+
+  const onPaceData = timelineData.on_pace.map((point: any, idx: number) => ({
+    x: idx,
+    y: safeBalance(point.balance),
+    isHistorical: point.is_historical,
+  }));
+
+  const optimizedData = timelineData.aadil_plan.map((point: any, idx: number) => ({
+    x: idx,
+    y: safeBalance(point.balance),
+    isHistorical: point.is_historical,
+  }));
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
         <Card variant="highlight" style={styles.heroCard}>
           <View style={styles.heroHeader}>
             <View>
-              <Text style={styles.eyebrow}>Smart Campus Wallet+</Text>
-              <Text style={styles.heroTitle}>Dashboard</Text>
-            </View>
-            <View style={styles.headerActions}>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>Synced 2m ago</Text>
-              </View>
-              <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
-                <Ionicons
-                  name={mode === 'dark' ? 'sunny' : 'moon'}
-                  size={18}
-                  color={colors.surface}
-                />
-              </TouchableOpacity>
+              <Text style={styles.heroTitle}>Aadil</Text>
+              <Text style={styles.eyebrow}>
+                {currentDate.toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  month: 'short',
+                  day: 'numeric',
+                })}
+              </Text>
             </View>
           </View>
           <View style={styles.heroStatsRow}>
             <View style={styles.heroStat}>
-              <Text style={styles.statLabel}>Projected Balance</Text>
-              <Text style={styles.statValue}>$3,420</Text>
-              <Text style={styles.statDelta}>On track +$260</Text>
+              <Text style={styles.statLabel}>Current Balance</Text>
+              <Text style={styles.statValue}>
+                ${safeBalance(simulationState.current_balance).toLocaleString()}
+              </Text>
+              <Text style={styles.statDelta}>
+                Projected: ${safeBalance(dashboardData.projected_balance).toFixed(0)}
+              </Text>
             </View>
             <View style={styles.heroDivider} />
             <View style={styles.heroStat}>
-              <Text style={styles.statLabel}>Semester Savings</Text>
-              <Text style={styles.statValue}>$980</Text>
-              <Text style={styles.statDeltaPositive}>+18% vs goal</Text>
+              <Text style={styles.statLabel}>AI Plan Savings</Text>
+              <Text style={styles.statValue}>
+                ${Math.abs(dashboardData.semester_savings).toFixed(0)}
+              </Text>
+              <Text style={styles.statDeltaPositive}>vs on-pace path</Text>
             </View>
           </View>
+          <TouchableOpacity
+            style={[styles.simulateButton, simulating && styles.simulateButtonActive]}
+            onPress={handleSimulateDay}
+            disabled={simulating}
+            activeOpacity={0.8}
+          >
+            {simulating ? (
+              <>
+                <ActivityIndicator size="small" color={colors.surface} />
+                <Text style={styles.simulateButtonText}>{simulationStatus}</Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="play" size={18} color={colors.surface} />
+                <Text style={styles.simulateButtonText}>Simulate Next Day</Text>
+              </>
+            )}
+          </TouchableOpacity>
         </Card>
 
         <Card>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Connections</Text>
-            <TouchableOpacity>
-              <Text style={styles.linkText}>Manage</Text>
-            </TouchableOpacity>
           </View>
-          {connections.map((item) => (
-            <View key={item.label} style={styles.connectionRow}>
+          
+          <TouchableOpacity onPress={() => router.push('/bank')}>
+            <View style={styles.connectionRow}>
               <View
                 style={[
                   styles.connectionIcon,
-                  { backgroundColor: `${item.accent}1A` },
+                  { backgroundColor: `${colors.primary}1A` },
                 ]}
               >
-                <Ionicons name={item.icon as any} size={20} color={item.accent} />
+                <Ionicons name="card-outline" size={20} color={colors.primary} />
               </View>
               <View style={styles.connectionInfo}>
-                <Text style={styles.connectionLabel}>{item.label}</Text>
+                <Text style={styles.connectionLabel}>Bank Account Integration</Text>
                 <View style={styles.statusPill}>
                   <View style={styles.statusDot} />
-                  <Text style={styles.statusText}>{item.status}</Text>
+                  <Text style={styles.statusText}>Connected</Text>
                 </View>
               </View>
               <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
             </View>
-          ))}
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => router.push('/rutgers')}>
+            <View style={styles.connectionRow}>
+              <View
+                style={[
+                  styles.connectionIcon,
+                  { backgroundColor: 'rgba(214, 40, 40, 0.1)' },
+                ]}
+              >
+                <Ionicons name="school-outline" size={20} color="#D62828" />
+              </View>
+              <View style={styles.connectionInfo}>
+                <Text style={styles.connectionLabel}>Rutgers NetID Account</Text>
+                <View style={styles.statusPill}>
+                  <View style={styles.statusDot} />
+                  <Text style={styles.statusText}>Connected</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </View>
+          </TouchableOpacity>
         </Card>
 
-        <Card>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Balance Projections</Text>
-            <View style={styles.legendGroup}>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#5AC8FA' }]} />
-                <Text style={styles.legendLabel}>On pace</Text>
-              </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: colors.accentGreen }]} />
-                <Text style={styles.legendLabel}>Optimized</Text>
-              </View>
+        <Card style={styles.chartCard}>
+          <Text style={styles.sectionTitle}>2-Week Projection</Text>
+          <Text style={styles.chartSubtitle}>Past 7 days + Next 14 days forecast</Text>
+          <View style={styles.chartContainer}>
+            <LineChart
+              data={onPaceData}
+              data2={optimizedData}
+              height={320}
+              width={chartWidth}
+              color="#5AC8FA"
+              color2={colors.accentGreen}
+              gridColor={colors.border}
+              axisColor={colors.border}
+              strokeWidth={2.5}
+              textColor={colors.textMuted}
+            />
+          </View>
+          <View style={styles.chartLegend}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#5AC8FA' }]} />
+              <Text style={styles.legendLabel}>Current path</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: colors.accentGreen }]} />
+              <Text style={styles.legendLabel}>AI optimized</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View
+                style={[
+                  styles.legendLine,
+                  { borderColor: colors.textMuted, borderStyle: 'dashed' },
+                ]}
+              />
+              <Text style={styles.legendLabel}>Projected</Text>
             </View>
           </View>
-          <LineChart
-            data={onPaceData}
-            data2={optimizedData}
-            height={220}
-            width={chartWidth}
-            color="#5AC8FA"
-            color2={colors.accentGreen}
-            gridColor={colors.border}
-            axisColor={colors.border}
-          />
           <View style={styles.projectionFooter}>
-            <View>
-              <Text style={styles.projectionLabel}>Semester-end difference</Text>
-              <Text style={styles.projectionValue}>+$600</Text>
+            <View style={styles.projectionStat}>
+              <Text style={styles.projectionLabel}>In 2 weeks (current path)</Text>
+              <Text style={styles.projectionValue}>
+                ${safeBalance(timelineData.on_pace[timelineData.on_pace.length - 1]?.balance).toFixed(0)}
+              </Text>
             </View>
-            <View style={styles.deltaPill}>
-              <Ionicons name="trending-up" size={16} color={colors.accentGreen} />
-              <Text style={styles.deltaText}>AI optimized</Text>
+            <View style={styles.projectionDivider} />
+            <View style={styles.projectionStat}>
+              <Text style={styles.projectionLabel}>In 2 weeks (AI plan)</Text>
+              <Text style={[styles.projectionValue, { color: colors.accentGreen }]}>
+                ${safeBalance(timelineData.aadil_plan[timelineData.aadil_plan.length - 1]?.balance).toFixed(0)}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.improvementBanner}>
+            <Ionicons name="trending-up" size={20} color={colors.accentGreen} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.improvementTitle}>
+                +${Math.abs(safeBalance(timelineData.aadil_plan[timelineData.aadil_plan.length - 1]?.balance) - safeBalance(timelineData.on_pace[timelineData.on_pace.length - 1]?.balance)).toFixed(0)} better
+              </Text>
+              <Text style={styles.improvementSubtext}>
+                With AI-optimized spending over next 2 weeks
+              </Text>
             </View>
           </View>
         </Card>
@@ -235,8 +350,8 @@ export default function DashboardScreen() {
             </View>
           </View>
           <View style={styles.calendarHeaderRow}>
-            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day) => (
-              <Text key={day} style={styles.calendarHeaderText}>
+            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
+              <Text key={index} style={styles.calendarHeaderText}>
                 {day}
               </Text>
             ))}
@@ -266,28 +381,31 @@ export default function DashboardScreen() {
           ))}
         </Card>
 
-        <Card variant="muted">
-          <View style={styles.aiNoteHeader}>
-            <View style={styles.sparkleBadge}>
-              <Ionicons name="sparkles" size={16} color={colors.primary} />
+        {dashboardData.recent_insights.length > 0 && (
+          <Card variant="muted">
+            <View style={styles.aiNoteHeader}>
+              <View style={styles.sparkleBadge}>
+                <Ionicons name="sparkles" size={16} color={colors.primary} />
+              </View>
+              <Text style={styles.aiNoteTitle}>{dashboardData.recent_insights[0].title}</Text>
             </View>
-            <Text style={styles.aiNoteTitle}>AI Notes</Text>
-          </View>
-          <Text style={styles.aiNoteText}>
-            You spent 30% more on dining this week than typical. Consider shifting $25 from
-            entertainment.
-          </Text>
-        </Card>
-      </ScrollView>
-    </SafeAreaView>
+            <Text style={styles.aiNoteText}>{dashboardData.recent_insights[0].content}</Text>
+          </Card>
+        )}
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    safeArea: {
+    container: {
       flex: 1,
       backgroundColor: colors.background,
+    },
+    safeArea: {
+      flex: 1,
     },
     scroll: {
       flex: 1,
@@ -316,17 +434,21 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textMuted,
       marginBottom: 2,
       letterSpacing: 0.4,
+      fontFamily: Fonts.regular,
     },
     heroTitle: {
       fontSize: 28,
       fontWeight: '700',
       color: colors.text,
+      fontFamily: Fonts.bold,
     },
     badge: {
-      backgroundColor: colors.surface,
+      backgroundColor: colors.surfaceMuted,
       paddingHorizontal: 14,
       paddingVertical: 6,
       borderRadius: Radii.pill,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     badgeText: {
       fontSize: 13,
@@ -352,21 +474,25 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 13,
       color: colors.textMuted,
       marginBottom: 6,
+      fontFamily: Fonts.regular,
     },
     statValue: {
       fontSize: 28,
       fontWeight: '700',
       color: colors.text,
+      fontFamily: Fonts.bold,
     },
     statDelta: {
       fontSize: 14,
       color: colors.textMuted,
       marginTop: 4,
+      fontFamily: Fonts.regular,
     },
     statDeltaPositive: {
       fontSize: 14,
       color: colors.accentGreen,
       marginTop: 4,
+      fontFamily: Fonts.regular,
     },
     heroDivider: {
       width: 1,
@@ -384,6 +510,7 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 20,
       fontWeight: '700',
       color: colors.text,
+      fontFamily: Fonts.bold,
     },
     linkText: {
       fontSize: 15,
@@ -402,6 +529,8 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     connectionInfo: {
       flex: 1,
@@ -411,6 +540,7 @@ const createStyles = (colors: ThemeColors) =>
       fontWeight: '600',
       color: colors.text,
       marginBottom: 4,
+      fontFamily: Fonts.semiBold,
     },
     statusPill: {
       flexDirection: 'row',
@@ -419,6 +549,8 @@ const createStyles = (colors: ThemeColors) =>
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: Radii.pill,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     statusDot: {
       width: 6,
@@ -431,6 +563,7 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 12,
       fontWeight: '600',
       color: colors.primary,
+      fontFamily: Fonts.semiBold,
     },
     legendGroup: {
       flexDirection: 'row',
@@ -446,9 +579,16 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: 6,
       marginRight: 8,
     },
+    legendLine: {
+      width: 20,
+      height: 2,
+      borderTopWidth: 2,
+      marginRight: 8,
+    },
     legendLabel: {
-      fontSize: 13,
+      fontSize: 12,
       color: colors.textMuted,
+      fontFamily: Fonts.regular,
     },
     projectionFooter: {
       flexDirection: 'row',
@@ -459,11 +599,13 @@ const createStyles = (colors: ThemeColors) =>
     projectionLabel: {
       fontSize: 13,
       color: colors.textMuted,
+      fontFamily: Fonts.regular,
     },
     projectionValue: {
       fontSize: 28,
       fontWeight: '700',
       color: colors.text,
+      fontFamily: Fonts.bold,
     },
     deltaPill: {
       flexDirection: 'row',
@@ -473,11 +615,14 @@ const createStyles = (colors: ThemeColors) =>
       paddingVertical: 6,
       borderRadius: Radii.pill,
       gap: 6,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     deltaText: {
       fontSize: 13,
       fontWeight: '600',
       color: colors.accentGreen,
+      fontFamily: Fonts.semiBold,
     },
     calendarLegend: {
       flexDirection: 'row',
@@ -495,6 +640,7 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 12,
       color: colors.textMuted,
       fontWeight: '600',
+      fontFamily: Fonts.semiBold,
     },
     calendarRow: {
       flexDirection: 'row',
@@ -509,15 +655,19 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.surfaceMuted,
       alignItems: 'center',
       justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     calendarCellText: {
       fontSize: 13,
       fontWeight: '600',
       color: colors.text,
+      fontFamily: Fonts.semiBold,
     },
     secondaryLabel: {
       fontSize: 14,
       color: colors.textMuted,
+      fontFamily: Fonts.regular,
     },
     aiNoteHeader: {
       flexDirection: 'row',
@@ -532,15 +682,103 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     aiNoteTitle: {
       fontSize: 15,
       fontWeight: '600',
       color: colors.primary,
+      fontFamily: Fonts.semiBold,
     },
     aiNoteText: {
       fontSize: 15,
       color: colors.text,
       lineHeight: 22,
+      fontFamily: Fonts.regular,
+    },
+    simulateButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primary,
+      borderRadius: Radii.pill,
+      paddingVertical: 14,
+      marginTop: 16,
+      gap: 10,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
+    },
+    simulateButtonActive: {
+      backgroundColor: colors.primary,
+      opacity: 0.9,
+      transform: [{ scale: 0.98 }],
+    },
+    simulateButtonText: {
+      color: colors.surface,
+      fontSize: 15,
+      fontWeight: '600',
+      fontFamily: Fonts.semiBold,
+      minWidth: 140,
+      textAlign: 'center',
+    },
+    chartCard: {
+      paddingVertical: 24,
+    },
+    chartSubtitle: {
+      fontSize: 13,
+      color: colors.textMuted,
+      fontFamily: Fonts.regular,
+      marginTop: 4,
+      marginBottom: 8,
+    },
+    chartContainer: {
+      marginVertical: 20,
+      marginLeft: 10,
+      marginRight: -10,
+    },
+    chartLegend: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: 24,
+      marginTop: 16,
+      paddingTop: 16,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    projectionStat: {
+      flex: 1,
+    },
+    projectionDivider: {
+      width: 1,
+      height: 50,
+      backgroundColor: colors.border,
+      marginHorizontal: 16,
+    },
+    improvementBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      backgroundColor: colors.surfaceHighlight,
+      padding: 16,
+      borderRadius: Radii.md,
+      marginTop: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    improvementTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text,
+      fontFamily: Fonts.bold,
+      marginBottom: 2,
+    },
+    improvementSubtext: {
+      fontSize: 13,
+      color: colors.textMuted,
+      fontFamily: Fonts.regular,
     },
   });

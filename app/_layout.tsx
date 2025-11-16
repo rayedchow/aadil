@@ -2,6 +2,11 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import { useFonts, Raleway_400Regular, Raleway_500Medium, Raleway_600SemiBold, Raleway_700Bold } from '@expo-google-fonts/raleway';
+import * as SplashScreen from 'expo-splash-screen';
+import { useEffect } from 'react';
+
+SplashScreen.preventAutoHideAsync();
 
 function TabsLayout() {
   const { colors, mode } = useTheme();
@@ -38,15 +43,6 @@ function TabsLayout() {
           }}
         />
         <Tabs.Screen
-          name="simulator"
-          options={{
-            title: 'Simulator',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="analytics-outline" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
           name="budgeting"
           options={{
             title: 'Budgeting',
@@ -73,12 +69,47 @@ function TabsLayout() {
             ),
           }}
         />
+        <Tabs.Screen
+          name="bank"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="rutgers"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="simulator"
+          options={{
+            href: null,
+          }}
+        />
       </Tabs>
     </>
   );
 }
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    Raleway_400Regular,
+    Raleway_500Medium,
+    Raleway_600SemiBold,
+    Raleway_700Bold,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
     <ThemeProvider>
       <TabsLayout />

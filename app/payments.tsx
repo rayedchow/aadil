@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,13 +6,20 @@ import {
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../components/Card';
-import { Radii, Spacing, ThemeColors } from '../constants/theme';
+import { Radii, Spacing, ThemeColors, Fonts } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
+import { api, Transaction, SimulationState } from '../services/api';
 
 export default function PaymentsScreen() {
+  const [loading, setLoading] = useState(true);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [state, setState] = useState<SimulationState | null>(null);
+
   const quickActions = [
     { name: 'Dining', icon: 'restaurant', color: '#FF9500' },
     { name: 'Clubs', icon: 'people', color: '#AF52DE' },
@@ -22,6 +29,82 @@ export default function PaymentsScreen() {
 
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [txns, stateData] = await Promise.all([
+        api.getRecentTransactions(10),
+        api.getState(),
+      ]);
+      setTransactions(txns);
+      setState(stateData);
+    } catch (error) {
+      console.error('Failed to load payments data:', error);
+      Alert.alert('Error', 'Failed to load payments data. Make sure the backend is running.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const getCategoryIcon = (category: string): string => {
+    const iconMap: { [key: string]: string } = {
+      'Dining': 'restaurant',
+      'Off-Campus Food': 'fast-food',
+      'Coffee': 'cafe',
+      'Groceries': 'basket',
+      'Transportation': 'car',
+      'Ride Share': 'car',
+      'Entertainment': 'game-controller',
+      'Textbooks': 'book',
+      'School Supplies': 'pencil',
+      'Clothing': 'shirt',
+      'Phone Bill': 'phone-portrait',
+      'Utilities': 'flash',
+    };
+    return iconMap[category] || 'card';
+  };
+
+  const getCategoryColor = (category: string): string => {
+    const colorMap: { [key: string]: string } = {
+      'Dining': '#FF9500',
+      'Off-Campus Food': '#FF9500',
+      'Coffee': '#FF3B30',
+      'Groceries': '#34C759',
+      'Transportation': '#007AFF',
+      'Ride Share': '#007AFF',
+      'Entertainment': '#AF52DE',
+      'Textbooks': '#5856D6',
+      'School Supplies': '#5AC8FA',
+      'Clothing': '#FF2D55',
+    };
+    return colorMap[category] || colors.textMuted;
+  };
+
+  const getRelativeDate = (dateStr: string): string => {
+    if (!state) return dateStr;
+    const current = new Date(state.current_date);
+    const txnDate = new Date(dateStr);
+    const diffDays = Math.floor((current.getTime() - txnDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return txnDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  if (loading || !state) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.sectionHint, { marginTop: 12 }]}>Loading payments...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -37,11 +120,11 @@ export default function PaymentsScreen() {
           <View style={styles.heroFooter}>
             <View>
               <Text style={styles.heroMetaLabel}>Available balance</Text>
-              <Text style={styles.heroMetaValue}>$1,230</Text>
+              <Text style={styles.heroMetaValue}>${state.current_balance.toFixed(2)}</Text>
             </View>
             <View style={styles.heroChip}>
               <Ionicons name="shield-checkmark" size={16} color={colors.primary} />
-              <Text style={styles.heroChipText}>Secure Tap-to-Pay</Text>
+              <Text style={styles.heroChipText}>Live Balance</Text>
             </View>
           </View>
         </Card>
@@ -82,7 +165,7 @@ export default function PaymentsScreen() {
             </View>
             <View style={styles.walletBalance}>
               <Text style={styles.walletBalanceLabel}>Balance</Text>
-              <Text style={styles.walletBalanceValue}>$1,230</Text>
+              <Text style={styles.walletBalanceValue}>${state.current_balance.toFixed(2)}</Text>
             </View>
           </View>
         </Card>
@@ -138,23 +221,38 @@ export default function PaymentsScreen() {
         </Card>
 
         <Card>
-          <Text style={styles.sectionTitle}>Recent Transactions</Text>
-          {[
-            { name: 'Dining Hall', amount: '$12.50', date: 'Today', icon: 'restaurant', color: '#FF9500' },
-            { name: 'Printing Services', amount: '$3.25', date: 'Yesterday', icon: 'print', color: colors.accentGreen },
-            { name: 'Event Ticket', amount: '$15.00', date: '2 days ago', icon: 'calendar', color: colors.primary },
-          ].map((transaction) => (
-            <View key={transaction.name} style={styles.transactionRow}>
-              <View style={[styles.transactionIcon, { backgroundColor: `${transaction.color}15` }]}>
-                <Ionicons name={transaction.icon as any} size={20} color={transaction.color} />
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent Transactions</Text>
+            <Text style={styles.sectionHint}>{transactions.length} recent</Text>
+          </View>
+          {transactions.map((transaction) => {
+            const icon = getCategoryIcon(transaction.category);
+            const color = getCategoryColor(transaction.category);
+            const relativeDate = getRelativeDate(transaction.date);
+            const isIncome = transaction.type === 'income';
+            
+            return (
+              <View key={transaction.id} style={styles.transactionRow}>
+                <View style={[styles.transactionIcon, { backgroundColor: `${color}15` }]}>
+                  <Ionicons name={icon as any} size={20} color={color} />
+                </View>
+                <View style={styles.transactionInfo}>
+                  <Text style={styles.transactionName}>{transaction.description}</Text>
+                  <Text style={styles.transactionDate}>
+                    {relativeDate} • {transaction.category}
+                  </Text>
+                </View>
+                <Text
+                  style={[
+                    styles.transactionAmount,
+                    isIncome && { color: colors.accentGreen },
+                  ]}
+                >
+                  {isIncome ? '+' : '-'}${transaction.amount.toFixed(2)}
+                </Text>
               </View>
-              <View style={styles.transactionInfo}>
-                <Text style={styles.transactionName}>{transaction.name}</Text>
-                <Text style={styles.transactionDate}>{transaction.date}</Text>
-              </View>
-              <Text style={styles.transactionAmount}>{transaction.amount}</Text>
-            </View>
-          ))}
+            );
+          })}
         </Card>
       </ScrollView>
     </SafeAreaView>
@@ -182,16 +280,19 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 13,
       color: colors.textMuted,
       marginBottom: 4,
+      fontFamily: Fonts.regular,
     },
     heroTitle: {
       fontSize: 28,
       fontWeight: '700',
       color: colors.text,
+      fontFamily: Fonts.bold,
     },
     heroSubtitle: {
       fontSize: 15,
       color: colors.textMuted,
       marginTop: 6,
+      fontFamily: Fonts.regular,
     },
     heroFooter: {
       marginTop: 18,
@@ -202,25 +303,30 @@ const createStyles = (colors: ThemeColors) =>
     heroMetaLabel: {
       fontSize: 13,
       color: colors.textMuted,
+      fontFamily: Fonts.regular,
     },
     heroMetaValue: {
       fontSize: 28,
       fontWeight: '700',
       color: colors.text,
+      fontFamily: Fonts.bold,
     },
     heroChip: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colors.surface,
+      backgroundColor: colors.surfaceMuted,
       paddingHorizontal: 12,
       paddingVertical: 6,
       borderRadius: Radii.pill,
       gap: 6,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     heroChipText: {
       fontSize: 13,
       color: colors.primary,
       fontWeight: '600',
+      fontFamily: Fonts.semiBold,
     },
     sectionHeader: {
       flexDirection: 'row',
@@ -232,10 +338,12 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 20,
       fontWeight: '700',
       color: colors.text,
+      fontFamily: Fonts.bold,
     },
     sectionHint: {
       fontSize: 13,
       color: colors.textMuted,
+      fontFamily: Fonts.regular,
     },
     quickGrid: {
       flexDirection: 'row',
@@ -249,6 +357,8 @@ const createStyles = (colors: ThemeColors) =>
       paddingVertical: 18,
       alignItems: 'center',
       gap: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     quickIcon: {
       width: 48,
@@ -256,11 +366,14 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: Radii.md,
       alignItems: 'center',
       justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     quickText: {
       fontSize: 15,
       color: colors.text,
       fontWeight: '600',
+      fontFamily: Fonts.semiBold,
     },
     walletCard: {
       flexDirection: 'row',
@@ -279,16 +392,23 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.primary,
       alignItems: 'center',
       justifyContent: 'center',
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 6,
+      elevation: 3,
     },
     walletLabel: {
       fontSize: 16,
       fontWeight: '700',
       color: colors.text,
+      fontFamily: Fonts.bold,
     },
     walletSubtext: {
       fontSize: 13,
       color: colors.surface,
       opacity: 0.7,
+      fontFamily: Fonts.regular,
     },
     walletBalance: {
       alignItems: 'flex-end',
@@ -296,16 +416,19 @@ const createStyles = (colors: ThemeColors) =>
     walletBalanceLabel: {
       fontSize: 13,
       color: colors.textMuted,
+      fontFamily: Fonts.regular,
     },
     walletBalanceValue: {
       fontSize: 26,
       fontWeight: '700',
       color: colors.text,
+      fontFamily: Fonts.bold,
     },
     linkText: {
       fontSize: 15,
       color: colors.primary,
       fontWeight: '600',
+      fontFamily: Fonts.semiBold,
     },
     checkoutRow: {
       flexDirection: 'row',
@@ -327,20 +450,25 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: Radii.md,
       alignItems: 'center',
       justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     checkoutName: {
       fontSize: 16,
       fontWeight: '600',
       color: colors.text,
+      fontFamily: Fonts.semiBold,
     },
     checkoutDetail: {
       fontSize: 13,
       color: colors.textMuted,
+      fontFamily: Fonts.regular,
     },
     checkoutPrice: {
       fontSize: 16,
       fontWeight: '600',
       color: colors.text,
+      fontFamily: Fonts.semiBold,
     },
     summaryBox: {
       marginTop: 16,
@@ -348,6 +476,8 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: Radii.md,
       padding: 16,
       gap: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     summaryRow: {
       flexDirection: 'row',
@@ -356,11 +486,13 @@ const createStyles = (colors: ThemeColors) =>
     summaryLabel: {
       fontSize: 14,
       color: colors.textMuted,
+      fontFamily: Fonts.regular,
     },
     summaryValue: {
       fontSize: 14,
       fontWeight: '600',
       color: colors.text,
+      fontFamily: Fonts.semiBold,
     },
     summaryRowTotal: {
       flexDirection: 'row',
@@ -373,11 +505,13 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 16,
       fontWeight: '700',
       color: colors.text,
+      fontFamily: Fonts.bold,
     },
     summaryTotalValue: {
       fontSize: 16,
       fontWeight: '700',
       color: colors.text,
+      fontFamily: Fonts.bold,
     },
     payButton: {
       marginTop: 16,
@@ -385,11 +519,17 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: Radii.pill,
       paddingVertical: 16,
       alignItems: 'center',
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
     },
     payButtonText: {
       color: colors.surface,
       fontSize: 16,
       fontWeight: '600',
+      fontFamily: Fonts.semiBold,
     },
     transactionRow: {
       flexDirection: 'row',
@@ -405,6 +545,8 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     transactionInfo: {
       flex: 1,
@@ -413,15 +555,18 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 16,
       fontWeight: '600',
       color: colors.text,
+      fontFamily: Fonts.semiBold,
     },
     transactionDate: {
       fontSize: 13,
       color: colors.textMuted,
+      fontFamily: Fonts.regular,
     },
     transactionAmount: {
       fontSize: 16,
       fontWeight: '600',
       color: colors.text,
+      fontFamily: Fonts.semiBold,
     },
   });
 

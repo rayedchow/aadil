@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,62 +6,85 @@ import {
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../components/Card';
-import { Radii, Spacing, ThemeColors } from '../constants/theme';
+import { Radii, Spacing, ThemeColors, Fonts } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
+import { api, InsightItem } from '../services/api';
 
 export default function ReportsScreen() {
-  const [selectedPeriod, setSelectedPeriod] = useState('Month');
+  const [selectedPeriod, setSelectedPeriod] = useState<'Week' | 'Semester'>('Week');
+  const [loading, setLoading] = useState(true);
+  const [weeklyReports, setWeeklyReports] = useState<any[]>([]);
+  const [semesterReport, setSemesterReport] = useState<any>(null);
+  const [insights, setInsights] = useState<InsightItem[]>([]);
 
-  const periods = ['Day', 'Week', 'Month', 'Semester'];
+  const periods: Array<'Week' | 'Semester'> = ['Week', 'Semester'];
 
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const categories = [
-    { name: 'Dining', amount: 420, percent: 35, color: '#FF9500' },
-    { name: 'Books', amount: 280, percent: 23, color: '#007AFF' },
-    { name: 'Transportation', amount: 180, percent: 15, color: '#34C759' },
-    { name: 'Entertainment', amount: 150, percent: 13, color: '#AF52DE' },
-    { name: 'Other', amount: 170, percent: 14, color: '#8E8E93' },
-  ];
+  const loadReports = async () => {
+    try {
+      setLoading(true);
+      const [weekly, semester, insightsData] = await Promise.all([
+        api.getWeeklyReports(),
+        api.getSemesterReport(),
+        api.getInsights(),
+      ]);
+      setWeeklyReports(weekly);
+      setSemesterReport(semester);
+      setInsights(insightsData);
+    } catch (error) {
+      console.error('Failed to load reports:', error);
+      Alert.alert('Error', 'Failed to load reports. Make sure the backend is running and insights are generated.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const aiSuggestions = [
-    {
-      title: 'Set a weekly dining limit of $160',
-      category: 'Budgeting',
-      tag: 'Dining',
-      time: '3 weeks ago',
-      icon: 'wallet',
-      color: '#FF9500',
-    },
-    {
-      title: 'Shift $15 from entertainment to transportation',
-      category: 'Budgeting',
-      tag: 'Optimization',
-      time: '1 week ago',
-      icon: 'swap-horizontal',
-      color: '#007AFF',
-    },
-    {
-      title: 'Overrun Alert: Dining budget exceeded',
-      category: 'Overrun Alert',
-      tag: 'Dining',
-      time: '2 days ago',
-      icon: 'warning',
-      color: '#FF3B30',
-    },
-    {
-      title: 'Weekend dining spikes detected',
-      category: 'Analysis',
-      tag: 'Trends',
-      time: '5 days ago',
-      icon: 'trending-up',
-      color: '#34C759',
-    },
-  ];
+  useEffect(() => {
+    loadReports();
+  }, []);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.snapshotLabel, { marginTop: 12 }]}>Loading reports...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  const getIconForInsightType = (type: string) => {
+    switch (type) {
+      case 'warning':
+        return 'warning';
+      case 'tip':
+        return 'bulb';
+      case 'achievement':
+        return 'checkmark-circle';
+      default:
+        return 'information-circle';
+    }
+  };
+
+  const getColorForInsightType = (type: string) => {
+    switch (type) {
+      case 'warning':
+        return '#FF3B30';
+      case 'tip':
+        return colors.primary;
+      case 'achievement':
+        return colors.accentGreen;
+      default:
+        return colors.textMuted;
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -71,8 +94,8 @@ export default function ReportsScreen() {
       >
         <Card variant="highlight" style={styles.heroCard}>
           <Text style={styles.eyebrow}>Insights</Text>
-          <Text style={styles.heroTitle}>Monthly Reports</Text>
-          <Text style={styles.heroSubtitle}>Digestible analytics + AI suggestions</Text>
+          <Text style={styles.heroTitle}>Financial Reports</Text>
+          <Text style={styles.heroSubtitle}>AI-generated insights and analytics</Text>
           <View style={styles.heroToggle}>
             {periods.map((period) => (
               <TouchableOpacity
@@ -96,117 +119,171 @@ export default function ReportsScreen() {
           </View>
         </Card>
 
-        <Card>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Monthly Snapshot</Text>
-            <View style={styles.ratingBadge}>
-              <Ionicons name="checkmark-circle" size={16} color={colors.accentGreen} />
-              <Text style={styles.ratingText}>Good</Text>
-            </View>
-          </View>
-          <View style={styles.snapshotRow}>
-            <View>
-              <Text style={styles.snapshotLabel}>Total spending</Text>
-              <Text style={styles.snapshotValue}>$1,200</Text>
-            </View>
-            <View style={styles.snapshotDivider} />
-            <View>
-              <Text style={styles.snapshotLabel}>Variance vs plan</Text>
-              <Text style={styles.snapshotValuePositive}>-$85</Text>
-            </View>
-          </View>
-          <View style={styles.categoryBreakdown}>
-            {categories.map((category) => (
-              <View key={category.name} style={styles.categoryRow}>
-                <View style={styles.categoryLeft}>
-                  <View style={[styles.categoryDot, { backgroundColor: category.color }]} />
-                  <Text style={styles.categoryName}>{category.name}</Text>
-                </View>
-                <View style={styles.categoryBar}>
+        {selectedPeriod === 'Week' && weeklyReports.length > 0 && (
+          <>
+            {weeklyReports.map((report, index) => (
+              <Card key={report.week}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Week {report.week}</Text>
                   <View
                     style={[
-                      styles.categoryFill,
-                      { width: `${category.percent}%`, backgroundColor: category.color },
+                      styles.ratingBadge,
+                      {
+                        backgroundColor:
+                          report.net >= 0
+                            ? '#E8F8EF'
+                            : 'rgba(255, 59, 48, 0.1)',
+                      },
                     ]}
-                  />
+                  >
+                    <Ionicons
+                      name={report.net >= 0 ? 'trending-up' : 'trending-down'}
+                      size={16}
+                      color={report.net >= 0 ? colors.accentGreen : '#FF3B30'}
+                    />
+                    <Text
+                      style={[
+                        styles.ratingText,
+                        { color: report.net >= 0 ? colors.accentGreen : '#FF3B30' },
+                      ]}
+                    >
+                      {report.net >= 0 ? 'Surplus' : 'Deficit'}
+                    </Text>
+                  </View>
                 </View>
-                <Text style={styles.categoryAmount}>${category.amount}</Text>
-              </View>
+                <View style={styles.snapshotRow}>
+                  <View>
+                    <Text style={styles.snapshotLabel}>Spending</Text>
+                    <Text style={styles.snapshotValue}>${report.spending.toFixed(0)}</Text>
+                  </View>
+                  <View style={styles.snapshotDivider} />
+                  <View>
+                    <Text style={styles.snapshotLabel}>Income</Text>
+                    <Text style={styles.snapshotValue}>${report.income.toFixed(0)}</Text>
+                  </View>
+                  <View style={styles.snapshotDivider} />
+                  <View>
+                    <Text style={styles.snapshotLabel}>Net</Text>
+                    <Text
+                      style={
+                        report.net >= 0
+                          ? styles.snapshotValuePositive
+                          : [styles.snapshotValuePositive, { color: '#FF3B30' }]
+                      }
+                    >
+                      ${report.net.toFixed(0)}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.summaryCard}>
+                  <Text style={styles.summaryText}>{report.summary}</Text>
+                </View>
+              </Card>
             ))}
-          </View>
-        </Card>
+          </>
+        )}
 
-        <Card>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleRow}>
-              <Ionicons name="sparkles" size={20} color={colors.primary} />
-              <Text style={styles.sectionTitle}>AI Suggestions</Text>
-            </View>
-            <TouchableOpacity>
-              <Text style={styles.linkText}>View all</Text>
-            </TouchableOpacity>
-          </View>
-          {aiSuggestions.map((suggestion) => (
-            <View key={suggestion.title} style={styles.suggestionRow}>
-              <View style={[styles.suggestionIcon, { backgroundColor: `${suggestion.color}15` }]}>
-                <Ionicons name={suggestion.icon as any} size={18} color={suggestion.color} />
-              </View>
-              <View style={styles.suggestionBody}>
-                <View style={styles.suggestionHeader}>
-                  <Text style={styles.suggestionTitle}>{suggestion.title}</Text>
-                  <Text style={styles.suggestionTime}>{suggestion.time}</Text>
-                </View>
-                <View style={styles.tagRow}>
-                  <View style={styles.tag}>
-                    <Text style={styles.tagText}>{suggestion.category}</Text>
-                  </View>
-                  <View style={[styles.tag, { backgroundColor: `${suggestion.color}15` }]}>
-                    <Text style={[styles.tagText, { color: suggestion.color }]}>{suggestion.tag}</Text>
-                  </View>
-                </View>
+        {selectedPeriod === 'Semester' && semesterReport && (
+          <Card>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Semester Overview</Text>
+              <View style={styles.ratingBadge}>
+                <Ionicons
+                  name={semesterReport.net >= 0 ? 'checkmark-circle' : 'alert-circle'}
+                  size={16}
+                  color={semesterReport.net >= 0 ? colors.accentGreen : '#FF3B30'}
+                />
+                <Text
+                  style={[
+                    styles.ratingText,
+                    { color: semesterReport.net >= 0 ? colors.accentGreen : '#FF3B30' },
+                  ]}
+                >
+                  {semesterReport.net >= 0 ? 'Positive' : 'Negative'}
+                </Text>
               </View>
             </View>
-          ))}
-        </Card>
+            <View style={styles.snapshotRow}>
+              <View>
+                <Text style={styles.snapshotLabel}>Total Spending</Text>
+                <Text style={styles.snapshotValue}>
+                  ${semesterReport.total_spending.toFixed(0)}
+                </Text>
+              </View>
+              <View style={styles.snapshotDivider} />
+              <View>
+                <Text style={styles.snapshotLabel}>Total Income</Text>
+                <Text style={styles.snapshotValue}>
+                  ${semesterReport.total_income.toFixed(0)}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.summaryCard}>
+              <Text style={styles.sectionTitle}>Overview</Text>
+              <Text style={styles.summaryText}>{semesterReport.overview}</Text>
+            </View>
+            {semesterReport.strengths && semesterReport.strengths.length > 0 && (
+              <View style={styles.listSection}>
+                <Text style={styles.listTitle}>Strengths</Text>
+                {semesterReport.strengths.map((strength: string, idx: number) => (
+                  <View key={idx} style={styles.listItem}>
+                    <Ionicons name="checkmark-circle" size={18} color={colors.accentGreen} />
+                    <Text style={styles.listText}>{strength}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+            {semesterReport.improvements && semesterReport.improvements.length > 0 && (
+              <View style={styles.listSection}>
+                <Text style={styles.listTitle}>Areas for Improvement</Text>
+                {semesterReport.improvements.map((improvement: string, idx: number) => (
+                  <View key={idx} style={styles.listItem}>
+                    <Ionicons name="bulb-outline" size={18} color={colors.accentOrange} />
+                    <Text style={styles.listText}>{improvement}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </Card>
+        )}
 
-        <Card>
-          <Text style={styles.sectionTitle}>Analytical Trends</Text>
-          {[
-            {
-              title: 'Weekend Dining Spikes',
-              description:
-                'Your dining spending increases by 45% on weekends. Consider meal prepping to reduce costs.',
-              icon: 'calendar',
-              color: colors.primary,
-            },
-            {
-              title: 'Transportation Savings',
-              description:
-                "You've saved $45 by using campus shuttles instead of rideshares. Keep it going!",
-              icon: 'trending-down',
-              color: colors.accentGreen,
-            },
-            {
-              title: 'Optimization Opportunity',
-              description: 'Reducing entertainment spending by 20% could save $30/month.',
-              icon: 'bulb',
-              color: colors.accentOrange,
-            },
-          ].map((trend, index) => (
-            <View key={trend.title}>
-              <View style={styles.trendRow}>
-                <View style={[styles.trendIcon, { backgroundColor: `${trend.color}15` }]}>
-                  <Ionicons name={trend.icon as any} size={18} color={trend.color} />
-                </View>
-                <View style={styles.trendCopy}>
-                  <Text style={styles.trendTitle}>{trend.title}</Text>
-                  <Text style={styles.trendDescription}>{trend.description}</Text>
-                </View>
+        {insights.length > 0 && (
+          <Card>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <Ionicons name="sparkles" size={20} color={colors.primary} />
+                <Text style={styles.sectionTitle}>AI Insights</Text>
               </View>
-              {index < 2 && <View style={styles.trendDivider} />}
             </View>
-          ))}
-        </Card>
+            {insights.slice(0, 5).map((insight) => {
+              const iconName = getIconForInsightType(insight.type);
+              const iconColor = getColorForInsightType(insight.type);
+              return (
+                <View key={insight.id} style={styles.suggestionRow}>
+                  <View style={[styles.suggestionIcon, { backgroundColor: `${iconColor}15` }]}>
+                    <Ionicons name={iconName as any} size={18} color={iconColor} />
+                  </View>
+                  <View style={styles.suggestionBody}>
+                    <View style={styles.suggestionHeader}>
+                      <Text style={styles.suggestionTitle}>{insight.title}</Text>
+                    </View>
+                    <Text style={styles.trendDescription}>{insight.content}</Text>
+                    <View style={styles.tagRow}>
+                      <View style={styles.tag}>
+                        <Text style={styles.tagText}>{insight.type}</Text>
+                      </View>
+                      <View style={[styles.tag, { backgroundColor: `${iconColor}15` }]}>
+                        <Text style={[styles.tagText, { color: iconColor }]}>
+                          {insight.category}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </Card>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -233,23 +310,28 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 13,
       color: colors.textMuted,
       marginBottom: 4,
+      fontFamily: Fonts.regular,
     },
     heroTitle: {
       fontSize: 28,
       fontWeight: '700',
       color: colors.text,
+      fontFamily: Fonts.bold,
     },
     heroSubtitle: {
       fontSize: 15,
       color: colors.textMuted,
       marginTop: 6,
+      fontFamily: Fonts.regular,
     },
     heroToggle: {
       flexDirection: 'row',
       marginTop: 18,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.surfaceMuted,
       borderRadius: Radii.pill,
       padding: 4,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     periodChip: {
       flex: 1,
@@ -264,6 +346,7 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 13,
       color: colors.textMuted,
       fontWeight: '600',
+      fontFamily: Fonts.semiBold,
     },
     periodChipTextActive: {
       color: colors.surface,
@@ -278,6 +361,7 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 20,
       fontWeight: '700',
       color: colors.text,
+      fontFamily: Fonts.bold,
     },
     ratingBadge: {
       flexDirection: 'row',
@@ -287,11 +371,14 @@ const createStyles = (colors: ThemeColors) =>
       paddingVertical: 6,
       borderRadius: Radii.pill,
       gap: 6,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     ratingText: {
       fontSize: 13,
       fontWeight: '600',
       color: colors.accentGreen,
+      fontFamily: Fonts.semiBold,
     },
     snapshotRow: {
       flexDirection: 'row',
@@ -302,16 +389,19 @@ const createStyles = (colors: ThemeColors) =>
     snapshotLabel: {
       fontSize: 13,
       color: colors.textMuted,
+      fontFamily: Fonts.regular,
     },
     snapshotValue: {
       fontSize: 28,
       fontWeight: '700',
       color: colors.text,
+      fontFamily: Fonts.bold,
     },
     snapshotValuePositive: {
       fontSize: 22,
       fontWeight: '700',
       color: colors.accentGreen,
+      fontFamily: Fonts.bold,
     },
     snapshotDivider: {
       width: 1,
@@ -369,6 +459,7 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 15,
       color: colors.primary,
       fontWeight: '600',
+      fontFamily: Fonts.semiBold,
     },
     suggestionRow: {
       flexDirection: 'row',
@@ -383,6 +474,8 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: Radii.md,
       alignItems: 'center',
       justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     suggestionBody: {
       flex: 1,
@@ -396,10 +489,12 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 16,
       fontWeight: '600',
       color: colors.text,
+      fontFamily: Fonts.semiBold,
     },
     suggestionTime: {
       fontSize: 13,
       color: colors.textMuted,
+      fontFamily: Fonts.regular,
     },
     tagRow: {
       flexDirection: 'row',
@@ -410,11 +505,14 @@ const createStyles = (colors: ThemeColors) =>
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: Radii.pill,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     tagText: {
       fontSize: 12,
       fontWeight: '600',
       color: colors.textMuted,
+      fontFamily: Fonts.semiBold,
     },
     trendRow: {
       flexDirection: 'row',
@@ -427,6 +525,8 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: Radii.md,
       alignItems: 'center',
       justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     trendCopy: {
       flex: 1,
@@ -435,17 +535,56 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 16,
       fontWeight: '600',
       color: colors.text,
+      fontFamily: Fonts.semiBold,
     },
     trendDescription: {
       fontSize: 14,
       color: colors.textMuted,
       lineHeight: 20,
       marginTop: 4,
+      fontFamily: Fonts.regular,
     },
     trendDivider: {
       height: 1,
       backgroundColor: colors.border,
       marginTop: 16,
+    },
+    summaryCard: {
+      backgroundColor: colors.surfaceMuted,
+      borderRadius: Radii.md,
+      padding: 16,
+      marginTop: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    summaryText: {
+      fontSize: 15,
+      color: colors.text,
+      lineHeight: 22,
+      fontFamily: Fonts.regular,
+    },
+    listSection: {
+      marginTop: 16,
+    },
+    listTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 12,
+      fontFamily: Fonts.bold,
+    },
+    listItem: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 12,
+      marginBottom: 10,
+    },
+    listText: {
+      flex: 1,
+      fontSize: 14,
+      color: colors.text,
+      lineHeight: 20,
+      fontFamily: Fonts.regular,
     },
   });
 
