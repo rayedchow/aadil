@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://aadil-backend.vercel.app/api';
+const API_BASE_URL = 'https://aadil-backend-production.up.railway.app/api';
 
 export interface Transaction {
   id: number;
