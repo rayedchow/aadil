@@ -133,12 +133,9 @@ export default function DashboardScreen() {
               <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
                 <Ionicons
                   name={mode === 'dark' ? 'sunny' : 'moon'}
-                  size={16}
+                  size={18}
                   color={colors.surface}
                 />
-                <Text style={styles.themeToggleText}>
-                  {mode === 'dark' ? 'Light mode' : 'Dark mode'}
-                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -337,18 +334,12 @@ const createStyles = (colors: ThemeColors) =>
       fontWeight: '600',
     },
     themeToggle: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
       backgroundColor: colors.primary,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: Radii.pill,
-      flexDirection: 'row',
       alignItems: 'center',
-      gap: 6,
-    },
-    themeToggleText: {
-      color: colors.surface,
-      fontSize: 13,
-      fontWeight: '600',
+      justifyContent: 'center',
     },
     heroStatsRow: {
       flexDirection: 'row',

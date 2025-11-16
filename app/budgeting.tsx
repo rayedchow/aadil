@@ -1,33 +1,59 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import React, { useEffect, useMemo, useRef } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  SafeAreaView,
-  TouchableOpacity,
   Animated,
   Easing,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Card } from '../components/Card';
-import { ProgressRing } from '../components/ProgressRing';
-import { Radii, Spacing, ThemeColors } from '../constants/theme';
-import { useTheme } from '../context/ThemeContext';
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Card } from "../components/Card";
+import { ProgressRing } from "../components/ProgressRing";
+import { Radii, Spacing, ThemeColors } from "../constants/theme";
+import { useTheme } from "../context/ThemeContext";
 
 export default function BudgetingScreen() {
   const budgets = [
-    { category: 'Dining', used: 142, limit: 175, color: '#FF9500', icon: 'restaurant' },
-    { category: 'Books', used: 89, limit: 180, color: '#007AFF', icon: 'book' },
-    { category: 'Transportation', used: 56, limit: 240, color: '#34C759', icon: 'car' },
-    { category: 'Entertainment', used: 45, limit: 100, color: '#AF52DE', icon: 'musical-notes' },
-    { category: 'Clubs', used: 78, limit: 120, color: '#FF3B30', icon: 'people' },
+    {
+      category: "Dining",
+      used: 142,
+      limit: 175,
+      color: "#FF9500",
+      icon: "restaurant",
+    },
+    { category: "Books", used: 89, limit: 180, color: "#007AFF", icon: "book" },
+    {
+      category: "Transportation",
+      used: 56,
+      limit: 240,
+      color: "#34C759",
+      icon: "car",
+    },
+    {
+      category: "Entertainment",
+      used: 45,
+      limit: 100,
+      color: "#AF52DE",
+      icon: "musical-notes",
+    },
+    {
+      category: "Clubs",
+      used: 78,
+      limit: 120,
+      color: "#FF3B30",
+      icon: "people",
+    },
   ];
 
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const heroAnim = useRef(new Animated.Value(0)).current;
-  const budgetAnimations = useRef(budgets.map(() => new Animated.Value(0))).current;
+  const budgetAnimations = useRef(
+    budgets.map(() => new Animated.Value(0))
+  ).current;
   const monthlyAnim = useRef(new Animated.Value(0)).current;
   const aiAnim = useRef(new Animated.Value(0)).current;
   const categoriesAnim = useRef(new Animated.Value(0)).current;
@@ -58,8 +84,8 @@ export default function BudgetingScreen() {
             duration: 520,
             easing: Easing.out(Easing.cubic),
             useNativeDriver: true,
-          }),
-        ),
+          })
+        )
       ),
       Animated.parallel([timing(monthlyAnim), timing(aiAnim, 80)]),
       timing(categoriesAnim),
@@ -89,7 +115,9 @@ export default function BudgetingScreen() {
           <Card variant="highlight" style={styles.heroCard}>
             <Text style={styles.eyebrow}>Smart Allocations</Text>
             <Text style={styles.heroTitle}>Budgeting Control</Text>
-            <Text style={styles.heroSubtitle}>Auto-adjusted across week & month</Text>
+            <Text style={styles.heroSubtitle}>
+              Auto-adjusted across week & month
+            </Text>
             <View style={styles.heroMetrics}>
               <View style={styles.metric}>
                 <Text style={styles.metricLabel}>Weekly Remaining</Text>
@@ -100,7 +128,9 @@ export default function BudgetingScreen() {
               <View style={styles.metric}>
                 <Text style={styles.metricLabel}>Monthly Remaining</Text>
                 <Text style={styles.metricValue}>$405</Text>
-                <Text style={styles.metricDeltaPositive}>Tracking under budget</Text>
+                <Text style={styles.metricDeltaPositive}>
+                  Tracking under budget
+                </Text>
               </View>
             </View>
           </Card>
@@ -156,7 +186,9 @@ export default function BudgetingScreen() {
               <View style={styles.statDivider} />
               <View style={styles.statBlock}>
                 <Text style={styles.statLabel}>Remaining</Text>
-                <Text style={[styles.statValue, { color: colors.accentGreen }]}>$405</Text>
+                <Text style={[styles.statValue, { color: colors.accentGreen }]}>
+                  $405
+                </Text>
               </View>
             </View>
           </Card>
@@ -170,7 +202,9 @@ export default function BudgetingScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.aiTitle}>AI Recommendation</Text>
-                <Text style={styles.aiSubtitle}>Overspent in transportation — shift $15?</Text>
+                <Text style={styles.aiSubtitle}>
+                  Overspent in transportation — shift $15?
+                </Text>
               </View>
             </View>
             <View style={styles.aiActions}>
@@ -195,12 +229,21 @@ export default function BudgetingScreen() {
                   <View style={styles.categoryHeader}>
                     <View style={styles.categoryLeft}>
                       <View
-                        style={[styles.categoryIcon, { backgroundColor: `${budget.color}15` }]}
+                        style={[
+                          styles.categoryIcon,
+                          { backgroundColor: `${budget.color}15` },
+                        ]}
                       >
-                        <Ionicons name={budget.icon as any} size={18} color={budget.color} />
+                        <Ionicons
+                          name={budget.icon as any}
+                          size={18}
+                          color={budget.color}
+                        />
                       </View>
                       <View>
-                        <Text style={styles.categoryName}>{budget.category}</Text>
+                        <Text style={styles.categoryName}>
+                          {budget.category}
+                        </Text>
                         <Text style={styles.categorySubtext}>
                           ${budget.used} / ${budget.limit}
                         </Text>
@@ -212,11 +255,18 @@ export default function BudgetingScreen() {
                     <View
                       style={[
                         styles.progressFill,
-                        { width: `${Math.min(percent, 100)}%`, backgroundColor: budget.color },
+                        {
+                          width: `${Math.min(percent, 100)}%`,
+                          backgroundColor: budget.color,
+                        },
                       ]}
                     />
                   </View>
-                  <Text style={remaining > 0 ? styles.remainingText : styles.overText}>
+                  <Text
+                    style={
+                      remaining > 0 ? styles.remainingText : styles.overText
+                    }
+                  >
                     {remaining > 0
                       ? `$${remaining} remaining`
                       : `$${Math.abs(remaining)} over budget`}
@@ -255,7 +305,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     heroTitle: {
       fontSize: 28,
-      fontWeight: '700',
+      fontWeight: "700",
       color: colors.text,
     },
     heroSubtitle: {
@@ -264,7 +314,7 @@ const createStyles = (colors: ThemeColors) =>
       marginTop: 8,
     },
     heroMetrics: {
-      flexDirection: 'row',
+      flexDirection: "row",
       marginTop: 20,
     },
     metric: {
@@ -277,7 +327,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     metricValue: {
       fontSize: 26,
-      fontWeight: '700',
+      fontWeight: "700",
       color: colors.text,
     },
     metricDelta: {
@@ -296,14 +346,14 @@ const createStyles = (colors: ThemeColors) =>
       marginHorizontal: 18,
     },
     sectionHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       marginBottom: 18,
     },
     sectionTitle: {
       fontSize: 20,
-      fontWeight: '700',
+      fontWeight: "700",
       color: colors.text,
     },
     secondaryText: {
@@ -311,13 +361,13 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.textMuted,
     },
     budgetGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: "row",
+      flexWrap: "wrap",
       gap: 20,
     },
     budgetTile: {
-      width: '45%',
-      alignItems: 'center',
+      width: "45%",
+      alignItems: "center",
       backgroundColor: colors.surfaceMuted,
       borderRadius: Radii.md,
       paddingVertical: 16,
@@ -330,24 +380,24 @@ const createStyles = (colors: ThemeColors) =>
     budgetPercent: {
       fontSize: 13,
       color: colors.text,
-      fontWeight: '600',
+      fontWeight: "600",
       marginTop: 4,
     },
     linkText: {
       fontSize: 15,
       color: colors.primary,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     monthlyStats: {
-      flexDirection: 'row',
+      flexDirection: "row",
       borderWidth: 1,
       borderColor: colors.border,
       borderRadius: Radii.lg,
-      overflow: 'hidden',
+      overflow: "hidden",
     },
     statBlock: {
       flex: 1,
-      alignItems: 'center',
+      alignItems: "center",
       paddingVertical: 16,
     },
     statLabel: {
@@ -357,7 +407,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     statValue: {
       fontSize: 22,
-      fontWeight: '700',
+      fontWeight: "700",
       color: colors.text,
     },
     statDivider: {
@@ -365,8 +415,8 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.border,
     },
     aiHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 12,
       marginBottom: 16,
     },
@@ -375,12 +425,12 @@ const createStyles = (colors: ThemeColors) =>
       height: 38,
       borderRadius: 19,
       backgroundColor: colors.primarySoft,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     aiTitle: {
       fontSize: 16,
-      fontWeight: '700',
+      fontWeight: "700",
       color: colors.text,
     },
     aiSubtitle: {
@@ -389,7 +439,7 @@ const createStyles = (colors: ThemeColors) =>
       marginTop: 2,
     },
     aiActions: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: 12,
     },
     primaryButton: {
@@ -397,12 +447,12 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.primary,
       borderRadius: Radii.pill,
       paddingVertical: 12,
-      alignItems: 'center',
+      alignItems: "center",
     },
     primaryButtonText: {
       color: colors.surface,
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     secondaryButton: {
       flex: 1,
@@ -410,12 +460,12 @@ const createStyles = (colors: ThemeColors) =>
       borderWidth: 1,
       borderColor: colors.primary,
       paddingVertical: 12,
-      alignItems: 'center',
+      alignItems: "center",
     },
     secondaryButtonText: {
       color: colors.primary,
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: "600",
     },
     categoryItem: {
       marginTop: 18,
@@ -424,26 +474,26 @@ const createStyles = (colors: ThemeColors) =>
       paddingBottom: 16,
     },
     categoryHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
       marginBottom: 12,
     },
     categoryLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 12,
     },
     categoryIcon: {
       width: 40,
       height: 40,
       borderRadius: Radii.md,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     categoryName: {
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: "600",
       color: colors.text,
     },
     categorySubtext: {
@@ -452,17 +502,17 @@ const createStyles = (colors: ThemeColors) =>
     },
     categoryPercent: {
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: "600",
       color: colors.text,
     },
     progressBarTrack: {
       height: 8,
       borderRadius: 4,
       backgroundColor: colors.border,
-      overflow: 'hidden',
+      overflow: "hidden",
     },
     progressFill: {
-      height: '100%',
+      height: "100%",
       borderRadius: 4,
     },
     remainingText: {
@@ -472,8 +522,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     overText: {
       fontSize: 13,
-      color: '#FF3B30',
+      color: "#FF3B30",
       marginTop: 6,
     },
   });
-

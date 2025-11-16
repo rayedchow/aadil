@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 import Svg, { Circle } from 'react-native-svg';
 
 interface ProgressRingProps {
@@ -11,6 +12,8 @@ interface ProgressRingProps {
   amount?: string;
 }
 
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
 export const ProgressRing: React.FC<ProgressRingProps> = ({
   progress,
   size = 80,
@@ -21,7 +24,23 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
 }) => {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
+  const animatedProgress = useRef(new Animated.Value(0)).current;
+  const { colors } = useTheme();
+
+  useEffect(() => {
+    Animated.timing(animatedProgress, {
+      toValue: progress,
+      duration: 700,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [progress, animatedProgress]);
+
+  const strokeDashoffset = animatedProgress.interpolate({
+    inputRange: [0, 100],
+    outputRange: [circumference, 0],
+    extrapolate: 'clamp',
+  });
 
   return (
     <View style={styles.container}>
@@ -34,7 +53,7 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
           strokeWidth={strokeWidth}
           fill="transparent"
         />
-        <Circle
+        <AnimatedCircle
           cx={size / 2}
           cy={size / 2}
           r={radius}
@@ -48,8 +67,10 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
         />
       </Svg>
       <View style={[styles.textContainer, { width: size, height: size }]}>
-        {amount && <Text style={styles.amount}>{amount}</Text>}
-        {label && <Text style={styles.label}>{label}</Text>}
+        {amount && (
+          <Text style={[styles.amount, { color: colors.text }]}>{amount}</Text>
+        )}
+        {label && <Text style={[styles.label, { color: colors.textMuted }]}>{label}</Text>}
       </View>
     </View>
   );
