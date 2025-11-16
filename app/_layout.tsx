@@ -31,6 +31,7 @@ function TabsLayout() {
             fontSize: 10,
             fontWeight: '500',
           },
+          animation: 'shift',
         }}
       >
         <Tabs.Screen
@@ -39,6 +40,15 @@ function TabsLayout() {
             title: 'Dashboard',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="home-outline" size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="plan"
+          options={{
+            title: 'Plan',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="flag-outline" size={size} color={color} />
             ),
           }}
         />
@@ -77,12 +87,6 @@ function TabsLayout() {
         />
         <Tabs.Screen
           name="rutgers"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="simulator"
           options={{
             href: null,
           }}

@@ -16,7 +16,7 @@ import { Card } from '../components/Card';
 import { LineChart } from '../components/LineChart';
 import { Radii, Spacing, ThemeColors, Fonts } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
-import { api, DashboardData, SimulationState } from '../services/api';
+import { api, DashboardData, SimulationState, OptimizationTip, Goal } from '../services/api';
 
 const calendarCells = [
   { day: '', status: 'empty' },
@@ -75,18 +75,24 @@ export default function DashboardScreen() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [simulationState, setSimulationState] = useState<SimulationState | null>(null);
   const [timelineData, setTimelineData] = useState<any>(null);
+  const [optimizationTips, setOptimizationTips] = useState<OptimizationTip[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [dashboard, state, timeline] = await Promise.all([
+      const [dashboard, state, timeline, tips, goalsData] = await Promise.all([
         api.getDashboard(),
         api.getState(),
         api.getTimeline(),
+        api.getOptimizationTips(),
+        api.getGoals(),
       ]);
       setDashboardData(dashboard);
       setSimulationState(state);
       setTimelineData(timeline);
+      setOptimizationTips(tips);
+      setGoals(goalsData);
     } catch (error) {
       console.error('Failed to load data:', error);
       Alert.alert('Error', 'Failed to load dashboard data. Make sure the backend is running.');
@@ -162,6 +168,23 @@ export default function DashboardScreen() {
     isHistorical: point.is_historical,
   }));
 
+  const getProjectedBalanceForTimeframe = (timeframe: string) => {
+    const daysMap: { [key: string]: number } = {
+      week: 7,
+      month: 30,
+      semester: 95,
+    };
+    const days = daysMap[timeframe] || 14;
+    const targetIndex = Math.min(days, timelineData.aadil_plan.length - 1);
+    return timelineData.aadil_plan[targetIndex]?.balance || simulationState.current_balance;
+  };
+
+  const activeGoals = goals.filter(g => !g.completed);
+  const achievableGoal = activeGoals.find(g => {
+    const projected = getProjectedBalanceForTimeframe(g.target_timeframe);
+    return g.target_amount <= projected;
+  });
+
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
@@ -221,6 +244,30 @@ export default function DashboardScreen() {
             )}
           </TouchableOpacity>
         </Card>
+
+        {achievableGoal && (
+          <Card style={styles.goalBanner}>
+            <View style={styles.goalBannerContent}>
+              <View style={styles.goalBannerIcon}>
+                <Ionicons name="flag" size={22} color={colors.surface} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.goalBannerTitle}>
+                  You're on track to afford {achievableGoal.name}!
+                </Text>
+                <Text style={styles.goalBannerSubtext}>
+                  ${achievableGoal.target_amount.toFixed(0)} by end of {achievableGoal.target_timeframe}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.goalBannerButton}
+                onPress={() => router.push('/plan' as any)}
+              >
+                <Ionicons name="arrow-forward" size={18} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+          </Card>
+        )}
 
         <Card>
           <View style={styles.sectionHeader}>
@@ -334,6 +381,60 @@ export default function DashboardScreen() {
           </View>
         </Card>
 
+        {optimizationTips.length > 0 && (
+          <Card>
+            <View style={styles.tipsHeader}>
+              <View style={styles.tipsHeaderLeft}>
+                <Ionicons name="bulb" size={22} color={colors.accentOrange} />
+                <View>
+                  <Text style={styles.tipsTitle}>How to Get There</Text>
+                  <Text style={styles.tipsSubtitle}>Actions to reach AI-optimized path</Text>
+                </View>
+              </View>
+            </View>
+            {optimizationTips.map((tip, index) => (
+              <View key={index} style={styles.tipRow}>
+                <View style={styles.tipLeft}>
+                  <View style={styles.tipNumber}>
+                    <Text style={styles.tipNumberText}>{index + 1}</Text>
+                  </View>
+                  <View style={[styles.tipIcon, { 
+                    backgroundColor: tip.category === 'Dining' ? 'rgba(255, 149, 0, 0.15)' :
+                                   tip.category === 'Coffee' ? 'rgba(255, 59, 48, 0.15)' :
+                                   tip.category === 'Transportation' ? 'rgba(0, 122, 255, 0.15)' :
+                                   'rgba(175, 82, 222, 0.15)'
+                  }]}>
+                    <Ionicons 
+                      name={tip.icon as any} 
+                      size={18} 
+                      color={
+                        tip.category === 'Dining' ? '#FF9500' :
+                        tip.category === 'Coffee' ? '#FF3B30' :
+                        tip.category === 'Transportation' ? '#007AFF' :
+                        '#AF52DE'
+                      } 
+                    />
+                  </View>
+                  <View style={styles.tipContent}>
+                    <Text style={styles.tipAction}>{tip.action}</Text>
+                    {tip.savings_per_week > 0 && (
+                      <Text style={styles.tipSavings}>
+                        Saves ~${tip.savings_per_week.toFixed(0)}/week
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+            ))}
+            <View style={styles.tipsFooter}>
+              <Ionicons name="sparkles" size={16} color={colors.primary} />
+              <Text style={styles.tipsFooterText}>
+                Follow these tips to stay on the optimized path
+              </Text>
+            </View>
+          </Card>
+        )}
+
         <Card>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Spending Calendar</Text>
@@ -381,17 +482,6 @@ export default function DashboardScreen() {
           ))}
         </Card>
 
-        {dashboardData.recent_insights.length > 0 && (
-          <Card variant="muted">
-            <View style={styles.aiNoteHeader}>
-              <View style={styles.sparkleBadge}>
-                <Ionicons name="sparkles" size={16} color={colors.primary} />
-              </View>
-              <Text style={styles.aiNoteTitle}>{dashboardData.recent_insights[0].title}</Text>
-            </View>
-            <Text style={styles.aiNoteText}>{dashboardData.recent_insights[0].content}</Text>
-          </Card>
-        )}
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -780,5 +870,133 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 13,
       color: colors.textMuted,
       fontFamily: Fonts.regular,
+    },
+    tipsHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 20,
+    },
+    tipsHeaderLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    tipsTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.text,
+      fontFamily: Fonts.bold,
+    },
+    tipsSubtitle: {
+      fontSize: 13,
+      color: colors.textMuted,
+      fontFamily: Fonts.regular,
+      marginTop: 2,
+    },
+    tipRow: {
+      marginBottom: 16,
+    },
+    tipLeft: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 12,
+    },
+    tipNumber: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    tipNumberText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.surface,
+      fontFamily: Fonts.bold,
+    },
+    tipIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: Radii.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    tipContent: {
+      flex: 1,
+      paddingTop: 2,
+    },
+    tipAction: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.text,
+      fontFamily: Fonts.semiBold,
+      lineHeight: 21,
+      marginBottom: 4,
+    },
+    tipSavings: {
+      fontSize: 13,
+      color: colors.accentGreen,
+      fontFamily: Fonts.medium,
+    },
+    tipsFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: colors.surfaceHighlight,
+      padding: 12,
+      borderRadius: Radii.md,
+      marginTop: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    tipsFooterText: {
+      flex: 1,
+      fontSize: 13,
+      color: colors.textMuted,
+      fontFamily: Fonts.regular,
+    },
+    goalBanner: {
+      backgroundColor: 'rgba(48, 209, 88, 0.08)',
+      borderWidth: 1,
+      borderColor: colors.accentGreen,
+    },
+    goalBannerContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    goalBannerIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.accentGreen,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    goalBannerTitle: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.text,
+      fontFamily: Fonts.semiBold,
+      marginBottom: 4,
+    },
+    goalBannerSubtext: {
+      fontSize: 13,
+      color: colors.textMuted,
+      fontFamily: Fonts.regular,
+    },
+    goalBannerButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.surfaceMuted,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
     },
   });

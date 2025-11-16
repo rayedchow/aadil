@@ -26,9 +26,10 @@ export interface Goal {
   id: string;
   name: string;
   target_amount: number;
-  target_date: string;
+  target_timeframe: string;
   current_amount: number;
   percentage: number;
+  completed: boolean;
 }
 
 export interface InsightItem {
@@ -91,6 +92,13 @@ export interface BudgetSuggestion {
   suggestion: string;
   impact: string;
   type: 'increase' | 'decrease' | 'maintain';
+}
+
+export interface OptimizationTip {
+  action: string;
+  category: string;
+  savings_per_week: number;
+  icon: string;
 }
 
 export const api = {
@@ -205,6 +213,28 @@ export const api = {
   async getBudgetSuggestions(): Promise<BudgetSuggestion[]> {
     const response = await fetch(`${API_BASE_URL}/budgets/suggestions`);
     if (!response.ok) throw new Error('Failed to fetch budget suggestions');
+    return response.json();
+  },
+
+  async getOptimizationTips(): Promise<OptimizationTip[]> {
+    const response = await fetch(`${API_BASE_URL}/optimization-tips`);
+    if (!response.ok) throw new Error('Failed to fetch optimization tips');
+    return response.json();
+  },
+
+  async deleteGoal(goalId: string): Promise<{ message: string }> {
+    const response = await fetch(`${API_BASE_URL}/goals/${goalId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to delete goal');
+    return response.json();
+  },
+
+  async markGoalComplete(goalId: string): Promise<{ message: string }> {
+    const response = await fetch(`${API_BASE_URL}/goals/${goalId}/complete`, {
+      method: 'PATCH',
+    });
+    if (!response.ok) throw new Error('Failed to mark goal as complete');
     return response.json();
   },
 };
